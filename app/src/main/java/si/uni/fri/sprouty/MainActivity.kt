@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var shopButton: ImageView
 
     private lateinit var leaderboardButton: ImageView
+
     private lateinit var planthubButton: ImageView
 
     private lateinit var gardenButton: ImageView

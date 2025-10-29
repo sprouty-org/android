@@ -66,4 +66,6 @@ dependencies {
     implementation(libs.play.services.auth)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.material)
+    implementation(libs.glide)
 }
