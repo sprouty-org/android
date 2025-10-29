@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="#E8F5E9"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".login.LoginActivity">
+
+    <!-- App Logo -->
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:src="@drawable/ic_launcher_foreground"
+        android:contentDescription="App Logo"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Welcome Title -->
+    <TextView
+        android:text="Welcome to Sprouty 🌱"
+        android:textColor="#2E7D32"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:text="Log in to grow your garden"
+        android:textColor="#4CAF50"
+        android:textSize="16sp"
+        android:layout_marginBottom="32dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- Profile name field (optional local login) -->
+    <EditText
+        android:id="@+id/etProfileName"
+        android:hint="Enter your profile name"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp"
+        android:textColor="#2E7D32"
+        android:textColorHint="#8BC34A"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Continue Button -->
+    <Button
+        android:id="@+id/btnLogin"
+        android:text="Continue"
+        android:textAllCaps="false"
+        android:backgroundTint="#4CAF50"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Divider -->
+    <TextView
+        android:text="or"
+        android:textColor="#558B2F"
+        android:textSize="14sp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- Google Sign-In Button -->
+    <Button
+        android:id="@+id/btnOAuth"
+        android:text="Sign in with Google"
+        android:textAllCaps="false"
+        android:backgroundTint="#FFFFFF"
+        android:textColor="#2E7D32"
+        android:drawableStart="@drawable/ic_google_logo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>

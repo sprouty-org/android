@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Sprouty</string>
+    <string name="loading_message">Loading…</string>>
+    <string name="loading_logo_description">Sprouty Logo></string>>
+    <string name="default_web_client_id">184489453443-mh2egeqeguq3oc6ohugdlk2284mljca1.apps.googleusercontent.com</string>
+
+    <string name="add_plant">add a plant</string>>
+    <string name="plant_image">There should be a pic of a plant here ;-)</string>>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
