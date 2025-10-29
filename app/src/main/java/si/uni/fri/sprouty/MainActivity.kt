@@ -3,6 +3,7 @@ package si.uni.fri.sprouty
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import si.uni.fri.sprouty.ui.garden.GardenFragment
@@ -10,6 +11,7 @@ import si.uni.fri.sprouty.ui.leaderboard.LeaderboardFragment
 import si.uni.fri.sprouty.ui.planthub.PlanthubFragment
 import si.uni.fri.sprouty.ui.sensors.SensorsFragment
 import si.uni.fri.sprouty.ui.shop.ShopFragment
+import si.uni.fri.sprouty.animations.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -91,6 +93,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showFragment(tag: String) {
+        val header: View = findViewById(R.id.header)
+        header.slideInFromLeft()
+        //set the text in the header to the fragment name
+        val headerTitle: TextView = header.findViewById(R.id.headerTitle)
+        headerTitle.text = when (tag) {
+            "shop" -> "Shop"
+            "leaderboard" -> "Leaderboard"
+            "planthub" -> "Plant Hub"
+            "garden" -> "Garden"
+            "sensors" -> "Sensors"
+            else -> ""
+        }
         val transaction = supportFragmentManager.beginTransaction()
         currentFragmentTag?.let { tagToHide ->
             fragments[tagToHide]?.let { transaction.hide(it) }
