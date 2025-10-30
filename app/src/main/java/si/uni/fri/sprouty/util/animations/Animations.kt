@@ -1,4 +1,4 @@
-package si.uni.fri.sprouty.animations
+package si.uni.fri.sprouty.util.animations
 
 import android.view.View
 

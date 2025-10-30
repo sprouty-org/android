@@ -1,4 +1,4 @@
-package si.uni.fri.sprouty.login
+package si.uni.fri.sprouty.ui.login
 
 import android.content.Intent
 import android.os.Bundle

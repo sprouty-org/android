@@ -25,7 +25,6 @@ class PlanthubFragment : Fragment() {
 
     private lateinit var plantImageButton: Button
     private lateinit var plantLifecycleButton: Button
-
     private lateinit var plantImage: ShapeableImageView
 
     private var startX = 0f
@@ -51,18 +50,16 @@ class PlanthubFragment : Fragment() {
         plantImage.setImageResource(R.drawable.aspect_plant)
 
         plantImageButton.setOnClickListener {
-            // Load lifecycle image
             changePlantDisplay(false)
-            switchColours(false)
         }
         plantLifecycleButton.setOnClickListener {
-            // Load plant image
             changePlantDisplay(true)
-            switchColours(true)
         }
 
-        val gestureDetector =
-            GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+
+        var movingHorizontally = false
+        var movingVertically = false
+        val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
                 private val SWIPE_THRESHOLD = 100
                 private val SWIPE_VELOCITY_THRESHOLD = 100
 
@@ -87,7 +84,6 @@ class PlanthubFragment : Fragment() {
                     return false
                 }
             })
-
         plantImage.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -100,12 +96,14 @@ class PlanthubFragment : Fragment() {
                         val deltaX = event.rawX - startX
                         val deltaY = event.rawY - startY
 
-                        if (abs(deltaX) > abs(deltaY)) {
+                        if (abs(deltaX) > abs(deltaY) && !movingVertically) {
+                            movingHorizontally = true
                             // Horizontal drag → move and rotate image
                             plantImage.translationX = deltaX
                             plantImage.rotation = deltaX / 60f
-                        }else{
+                        }else if(abs(deltaY) > abs(deltaX) && !movingHorizontally){
                             // Vertical drag → move image
+                            movingVertically = true
                             plantImage.translationY = deltaY
                         }
                     }
@@ -119,10 +117,10 @@ class PlanthubFragment : Fragment() {
                     val VERTICAL_THRESHOLD = 300
 
                     when {
-                        abs(deltaX) > abs(deltaY) && abs(deltaX) > HORIZONTAL_THRESHOLD -> {
+                        abs(deltaX) > abs(deltaY) && abs(deltaX) > HORIZONTAL_THRESHOLD && movingHorizontally -> {
                             showNextImage()
                         }
-                        abs(deltaY) > abs(deltaX) && deltaY < -VERTICAL_THRESHOLD -> {
+                        abs(deltaY) > abs(deltaX) && deltaY < -VERTICAL_THRESHOLD && movingVertically-> {
                             showPlantInfo() // swipe down
                         }
                         else -> {
@@ -131,6 +129,8 @@ class PlanthubFragment : Fragment() {
                     }
 
                     // Animate back to center
+                    movingHorizontally = false
+                    movingVertically = false
                     plantImage.animate()
                         .translationX(0f)
                         .translationY(0f)
@@ -154,40 +154,37 @@ class PlanthubFragment : Fragment() {
     }
 
     fun changePlantDisplay(toLifecycle: Boolean) {
+        val sproutyGreen = ContextCompat.getColor(requireContext(), R.color.sprouty_green)
+        val whiteColor = ContextCompat.getColor(requireContext(), R.color.white)
+
+        val lifecycleBg = plantLifecycleButton.background  //drawable of the button
+        val imageBg = plantImageButton.background
+
         if (toLifecycle) {
+            // Load lifecycle GIF
             Glide.with(this)
                 .asGif()
                 .load(R.drawable.plant_lifecycle)
                 .into(plantImage)
+
+            //change button colors
+            if(lifecycleBg is GradientDrawable && imageBg is GradientDrawable) {
+                lifecycleBg.setColor(sproutyGreen)
+                imageBg.setColor(whiteColor)
+                plantLifecycleButton.setTextColor(whiteColor)
+                plantImageButton.setTextColor(sproutyGreen)
+            }
         } else {
+            // Load plant image
             plantImage.setImageResource(R.drawable.aspect_plant)
-        }
-    }
 
-    // Function to set the solid color of a GradientDrawable
-    fun setShapeColor(drawable: Drawable, color: Int) {
-        if (drawable is GradientDrawable) {
-            drawable.setColor(color)
-        }
-    }
-
-    fun switchColours(toLifeCycle: Boolean) {
-        val sproutyGreen = ContextCompat.getColor(requireContext(), R.color.sprouty_green)
-        val whiteColor = ContextCompat.getColor(requireContext(), R.color.white)
-
-        val lifecycleBg = plantLifecycleButton.background
-        val imageBg = plantImageButton.background
-
-        if (toLifeCycle) {
-            setShapeColor(lifecycleBg, sproutyGreen)
-            setShapeColor(imageBg, whiteColor)
-            plantLifecycleButton.setTextColor(whiteColor)
-            plantImageButton.setTextColor(sproutyGreen)
-        } else {
-            setShapeColor(lifecycleBg, whiteColor)
-            setShapeColor(imageBg, sproutyGreen)
-            plantLifecycleButton.setTextColor(sproutyGreen)
-            plantImageButton.setTextColor(whiteColor)
+            //change button colors
+            if(lifecycleBg is GradientDrawable && imageBg is GradientDrawable) {
+                lifecycleBg.setColor(whiteColor)
+                imageBg.setColor(sproutyGreen)
+                plantLifecycleButton.setTextColor(sproutyGreen)
+                plantImageButton.setTextColor(whiteColor)
+            }
         }
     }
 }

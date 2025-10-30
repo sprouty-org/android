@@ -1,4 +1,4 @@
-package si.uni.fri.sprouty.loading
+package si.uni.fri.sprouty.ui.loading
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,7 +7,7 @@ import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import si.uni.fri.sprouty.MainActivity
 import si.uni.fri.sprouty.R
-import si.uni.fri.sprouty.login.LoginActivity
+import si.uni.fri.sprouty.ui.login.LoginActivity
 
 
 class LoadingActivity : AppCompatActivity() {

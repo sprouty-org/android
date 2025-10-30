@@ -1,10 +1,10 @@
-package si.uni.fri.sprouty.adapters
+package si.uni.fri.sprouty.util.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import si.uni.fri.sprouty.databinding.ItemPlantBinding
-import si.uni.fri.sprouty.datatypes.Plant
+import si.uni.fri.sprouty.util.datatypes.Plant
 
 class PlantAdapter(
     private val plants: List<Plant>,

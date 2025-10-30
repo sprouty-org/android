@@ -7,9 +7,9 @@ import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import si.uni.fri.sprouty.R
-import si.uni.fri.sprouty.adapters.PlantAdapter
+import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.databinding.FragmentGardenBinding
-import si.uni.fri.sprouty.datatypes.Plant
+import si.uni.fri.sprouty.util.datatypes.Plant
 
 class GardenFragment : Fragment(R.layout.fragment_garden) {
 

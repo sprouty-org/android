@@ -1,4 +1,4 @@
-package si.uni.fri.sprouty.datatypes
+package si.uni.fri.sprouty.util.datatypes
 
 data class Plant(
     val name: String,

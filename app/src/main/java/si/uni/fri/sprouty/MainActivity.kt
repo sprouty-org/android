@@ -11,7 +11,7 @@ import si.uni.fri.sprouty.ui.leaderboard.LeaderboardFragment
 import si.uni.fri.sprouty.ui.planthub.PlanthubFragment
 import si.uni.fri.sprouty.ui.sensors.SensorsFragment
 import si.uni.fri.sprouty.ui.shop.ShopFragment
-import si.uni.fri.sprouty.animations.*
+import si.uni.fri.sprouty.util.animations.slideInFromLeft
 
 class MainActivity : AppCompatActivity() {
 
