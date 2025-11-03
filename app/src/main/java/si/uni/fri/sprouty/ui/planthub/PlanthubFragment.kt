@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ScrollView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
@@ -42,6 +43,25 @@ class PlanthubFragment : Fragment() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val scrollView = view.findViewById<ScrollView>(R.id.scroll_view)
+        val scrollDownButton = view.findViewById<Button>(R.id.button_scroll_down)
+        val scrollUpButton = view.findViewById<Button>(R.id.button_scroll_up)
+        val infoSection = view.findViewById<View>(R.id.info_section)
+
+        scrollDownButton.setOnClickListener {
+            // Smooth scroll to info section
+            scrollView.post {
+                scrollView.smoothScrollTo(0, infoSection.top)
+            }
+        }
+
+        scrollUpButton.setOnClickListener {
+            // Smooth scroll back to top
+            scrollView.post {
+                scrollView.smoothScrollTo(0, 0)
+            }
+        }
 
         plantImageButton = view.findViewById(R.id.button_image)
         plantLifecycleButton = view.findViewById(R.id.button_lifecycle)
