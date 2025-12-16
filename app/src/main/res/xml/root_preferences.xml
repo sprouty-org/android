@@ -1,0 +1,18 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="Account">
+        <Preference
+            app:key="logout_button"
+            app:title="Log Out"
+            app:summary="Clear session and return to login screen"
+            app:icon="@drawable/ic_logout" /> </PreferenceCategory>
+
+    <PreferenceCategory app:title="App Preferences">
+        <SwitchPreferenceCompat
+            app:key="dark_mode"
+            app:title="Dark Mode"
+            app:summary="Toggle application theme"
+            app:defaultValue="false"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

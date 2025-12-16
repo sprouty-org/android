@@ -1,131 +1,99 @@
 package si.uni.fri.sprouty
 
+import android.content.Intent
 import android.os.Bundle
-import android.view.View
+import android.util.Log
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import si.uni.fri.sprouty.ui.garden.GardenFragment
-import si.uni.fri.sprouty.ui.leaderboard.LeaderboardFragment
-import si.uni.fri.sprouty.ui.planthub.PlanthubFragment
-import si.uni.fri.sprouty.ui.sensors.SensorsFragment
-import si.uni.fri.sprouty.ui.shop.ShopFragment
-import si.uni.fri.sprouty.util.animations.slideInFromLeft
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.launch
+import si.uni.fri.sprouty.data.database.AppDatabase
+import si.uni.fri.sprouty.data.repository.PlantRepository
+import si.uni.fri.sprouty.ui.garden.PlantViewModel
+import si.uni.fri.sprouty.ui.garden.PlantViewModelFactory
+import si.uni.fri.sprouty.ui.settings.SettingsActivity
+
+// ADDED IMPORTS for Network/API
+import si.uni.fri.sprouty.util.network.NetworkModule
+import si.uni.fri.sprouty.data.network.PlantApiService // Assuming this is the interface location
 
 class MainActivity : AppCompatActivity() {
 
-    private val fragments = mapOf(
-        "shop" to ShopFragment(),
-        "leaderboard" to LeaderboardFragment(),
-        "planthub" to PlanthubFragment(),
-        "garden" to GardenFragment(),
-        "sensors" to SensorsFragment()
-    )
-
-    private var currentFragmentTag: String? = null
-
-    private lateinit var bubble: View
-
-    private lateinit var shopButton: ImageView
-
-    private lateinit var leaderboardButton: ImageView
-
-    private lateinit var planthubButton: ImageView
-
-    private lateinit var gardenButton: ImageView
-
-    private lateinit var sensorsButton: ImageView
-
-
-
+    private lateinit var viewModel: PlantViewModel
+    private lateinit var recyclerPlants: RecyclerView
+    private lateinit var fabAddPlant: FloatingActionButton
+    // TODO: Define PlantAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        if (savedInstanceState == null) {
-            initFragments()
-            showFragment("planthub")
-        }
 
-        initFragmentObjects()
+        setupDependencies() // NEW: Set up Room, Repository, and ViewModel
+        setupIconNavigation()
+        setupGardenView()
 
+        // NEW: Start observing the plant data
+        observePlantData()
+
+        // Initial sync of data when the main garden loads
+        viewModel.refreshData()
     }
 
-    private fun initFragments() {
-        val transaction = supportFragmentManager.beginTransaction()
-        for ((tag, fragment) in fragments) {
-            transaction.add(R.id.fragmentContainerView, fragment, tag).hide(fragment)
-        }
-        transaction.commit()
+    private fun setupDependencies() {
+        // 1. Get DAO and setup API Service
+        val plantDao = AppDatabase.getDatabase(applicationContext).plantDao()
+
+        // FIX: Use NetworkModule to provide the API Service, matching how it was used in LoginActivity.
+        val retrofit = NetworkModule.provideRetrofit(applicationContext)
+        val apiService = retrofit.create(PlantApiService::class.java)
+
+        // 2. Create Repository
+        val repository = PlantRepository(plantDao, apiService)
+
+        // 3. Initialize ViewModel using the Factory
+        viewModel = ViewModelProvider(
+            this,
+            PlantViewModelFactory(repository)
+        )[PlantViewModel::class.java]
     }
 
-    private fun initFragmentObjects() {
-        bubble = findViewById(R.id.bubble)
+    private fun setupGardenView() {
+        recyclerPlants = findViewById(R.id.recyclerPlants)
+        fabAddPlant = findViewById(R.id.fabAddPlant)
 
-        shopButton = findViewById(R.id.shop_nav_button)
-        leaderboardButton = findViewById(R.id.leaderboard_nav_button)
-        planthubButton = findViewById(R.id.planthub_nav_button)
-        gardenButton = findViewById(R.id.garden_nav_button)
-        sensorsButton = findViewById(R.id.sensors_nav_button)
+        // Setup RecyclerView
+        recyclerPlants.layoutManager = GridLayoutManager(this, 2)
+        // TODO: recyclerPlants.adapter = PlantAdapter(...)
 
-        shopButton.setOnClickListener {
-            moveBubbleToButton(shopButton)
-            showFragment("shop")
+        // Setup FAB click listener
+        fabAddPlant.setOnClickListener {
+            // TODO: Launch the Add New Plant screen/dialog
         }
-        leaderboardButton.setOnClickListener {
-            moveBubbleToButton(leaderboardButton)
-            showFragment("leaderboard")
-        }
-        planthubButton.setOnClickListener {
-            moveBubbleToButton(planthubButton)
-            showFragment("planthub")
-        }
-        gardenButton.setOnClickListener {
-            moveBubbleToButton(gardenButton)
-            showFragment("garden")
-        }
-        sensorsButton.setOnClickListener {
-            moveBubbleToButton(sensorsButton)
-            showFragment("sensors")
-        }
-
-        moveBubbleToButton(planthubButton)
     }
 
-    private fun showFragment(tag: String) {
-        val header: View = findViewById(R.id.header)
-        header.slideInFromLeft()
-        //set the text in the header to the fragment name
-        val headerTitle: TextView = header.findViewById(R.id.headerTitle)
-        headerTitle.text = when (tag) {
-            "shop" -> "Shop"
-            "leaderboard" -> "Leaderboard"
-            "planthub" -> "Plant Hub"
-            "garden" -> "Garden"
-            "sensors" -> "Sensors"
-            else -> ""
+    private fun observePlantData() {
+        // Collect the StateFlow data from the ViewModel
+        lifecycleScope.launch {
+            viewModel.plantList.collect { plants ->
+                // This block runs whenever the data in the Room database changes!
+                // TODO: Update your RecyclerView adapter here
+                // (recyclerPlants.adapter as PlantAdapter).submitList(plants)
+                Log.d("MainActivity", "Received ${plants.size} plants from ViewModel.")
+            }
         }
-        val transaction = supportFragmentManager.beginTransaction()
-        currentFragmentTag?.let { tagToHide ->
-            fragments[tagToHide]?.let { transaction.hide(it) }
-        }
-        fragments[tag]?.let { transaction.show(it) }
-        transaction.commit()
-        currentFragmentTag = tag
     }
 
-    private fun moveBubbleToButton(button: ImageView) {
-        val buttonLocation = IntArray(2)
-        button.getLocationInWindow(buttonLocation)
-
-        val bubbleParams = bubble.layoutParams as ConstraintLayout.LayoutParams
-        bubbleParams.topToTop = button.id
-        bubbleParams.bottomToBottom = button.id
-        bubbleParams.startToStart = button.id
-        bubbleParams.endToEnd = button.id
-        bubbleParams.height = 180
-
-        bubble.layoutParams = bubbleParams
+    // --- Icon Navigation (Same as before) ---
+    private fun setupIconNavigation() {
+        // ... (Code for Shop and Settings icon clicks remains here)
+        findViewById<ImageView>(R.id.icon_settings).setOnClickListener {
+            // Start the Settings Activity
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        // ...
     }
 }

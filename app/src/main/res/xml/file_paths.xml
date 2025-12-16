@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- tmp file is created in cacheDir -> allow cache-path -->
+    <cache-path name="cache" path="."/>
+    <!-- optional additional paths you may need -->
+    <files-path name="files" path="."/>
+    <external-cache-path name="external_cache" path="."/>
+    <external-files-path name="external_files" path="."/>
+</paths>

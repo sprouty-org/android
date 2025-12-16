@@ -47,10 +47,10 @@
             android:padding="24dp">
 
             <TextView
-                android:id="@+id/txtLoginTitle"
+                android:id="@+id/txtSignUp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Welcome back!"
+                android:text="Sign up now!"
                 android:textColor="#2E7D32"
                 android:textSize="26sp"
                 android:textStyle="bold"
@@ -63,14 +63,14 @@
                 android:id="@+id/lblEmail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="16dp"
                 android:layout_marginBottom="-2dp"
                 android:text="Email"
                 android:textColor="#444"
                 android:textSize="14sp"
                 app:layout_constraintBottom_toTopOf="@+id/inputEmail"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/txtLoginTitle"
+                app:layout_constraintTop_toBottomOf="@id/txtSignUp"
                 app:layout_constraintVertical_chainStyle="spread" />
 
             <EditText
@@ -91,7 +91,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="-2dp"
-                android:layout_marginTop="16dp"
                 android:text="Password"
                 android:textColor="#444"
                 android:textSize="14sp"
@@ -110,19 +109,44 @@
                 app:layout_constraintTop_toBottomOf="@id/lblPassword"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/btnLogin"/>
+                app:layout_constraintBottom_toTopOf="@id/lblRepeatPassword"/>
 
-            <Button
-                android:id="@+id/btnLogin"
+            <TextView
+                android:id="@+id/lblRepeatPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="-2dp"
+                android:text="Repeat Password"
+                android:textColor="#444"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@+id/inputRepeatPassword"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/inputPassword" />
+
+            <EditText
+                android:id="@+id/inputRepeatPassword"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Login"
+                android:hint="Repeat your password"
+                android:background="@drawable/rounded_input"
+                android:padding="12dp"
+                android:inputType="textPassword"
+                app:layout_constraintTop_toBottomOf="@id/lblRepeatPassword"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/btnSignUp"/>
+
+            <Button
+                android:id="@+id/btnSignUp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Sign Up"
                 android:textColor="#FFFFFF"
                 android:textAllCaps="false"
                 android:backgroundTint="#2E7D32"
                 android:paddingVertical="12dp"
-                android:layout_marginTop="32dp"
-                app:layout_constraintTop_toBottomOf="@id/inputPassword"
+                android:layout_marginTop="24dp"
+                app:layout_constraintTop_toBottomOf="@id/inputRepeatPassword"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintWidth_percent="0.5"
@@ -135,14 +159,14 @@
                 android:layout_marginTop="24dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btnLogin"
+                app:layout_constraintTop_toBottomOf="@id/btnSignUp"
                 app:layout_constraintBottom_toTopOf="@id/btnGoogle">
 
                 <TextView
                     android:id="@+id/txtOr"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="or login with"
+                    android:text="or sign up with"
                     android:textColor="#777"
                     android:textSize="14sp"
                     android:layout_marginHorizontal="8dp"
@@ -180,16 +204,16 @@
                 android:src="@drawable/ic_google_logo"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Google Sign In"
+                android:contentDescription="Google Sign Up"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="16dp"
                 app:layout_constraintTop_toBottomOf="@id/txtOrGroup"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/txtSignupGroup"/>
+                app:layout_constraintBottom_toTopOf="@id/txtLoginGroup"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/txtSignupGroup"
+                android:id="@+id/txtLoginGroup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -197,19 +221,19 @@
                 app:layout_constraintTop_toBottomOf="@id/btnGoogle">
 
                 <TextView
-                    android:id="@+id/txtNoAccount"
+                    android:id="@+id/txtAlreadyAccount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Don't have an account?"
+                    android:text="Already have an account?"
                     android:textColor="#444"
                     android:textSize="12sp"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintBottom_toTopOf="@id/btnGoToSignup"/>
+                    app:layout_constraintBottom_toTopOf="@id/btnGoToLogin"/>
 
                 <Button
-                    android:id="@+id/btnGoToSignup"
+                    android:id="@+id/btnGoToLogin"
                     style="@style/Widget.AppCompat.Button.Borderless"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -217,11 +241,11 @@
                     android:minWidth="0dp"
                     android:paddingVertical="4dp"
                     android:paddingHorizontal="0dp"
-                    android:text="Go to SIGN UP"
+                    android:text="Go to LOGIN"
                     android:textColor="#2E7D32"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    app:layout_constraintTop_toBottomOf="@id/txtNoAccount"
+                    app:layout_constraintTop_toBottomOf="@id/txtAlreadyAccount"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"/>

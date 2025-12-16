@@ -1,4 +1,4 @@
-package si.uni.fri.sprouty.ui.login
+package si.uni.fri.sprouty.ui.register
 
 import android.content.Intent
 import android.os.Bundle
@@ -16,32 +16,31 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import si.uni.fri.sprouty.MainActivity
 import si.uni.fri.sprouty.R
-import si.uni.fri.sprouty.data.network.AuthApiService
-import si.uni.fri.sprouty.ui.register.RegisterActivity
+import si.uni.fri.sprouty.ui.login.LoginActivity
 import si.uni.fri.sprouty.util.auth.FirebaseUtils
 import si.uni.fri.sprouty.util.network.NetworkModule
+import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
+import si.uni.fri.sprouty.data.network.AuthApiService
 import si.uni.fri.sprouty.data.database.AppDatabase
 import si.uni.fri.sprouty.data.repository.PlantRepository
 import si.uni.fri.sprouty.data.network.PlantApiService
-import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil // Assuming this is the correct import
 
 private const val RC_SIGN_IN = 1001
 
-class LoginActivity : AppCompatActivity() {
+class RegisterActivity : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var firebaseUtils: FirebaseUtils // Dependency instance
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        setContentView(R.layout.activity_register)
 
         // INITIALIZATION
         firebaseAuth = FirebaseAuth.getInstance()
 
-        // --- DEPENDENCY INJECTION SETUP ---
+        // --- DEPENDENCY INJECTION SETUP (Same as LoginActivity) ---
 
         // 1. AuthApiService (Network dependency)
         val authApiService = NetworkModule.provideRetrofit(applicationContext).create(AuthApiService::class.java)
@@ -53,7 +52,7 @@ class LoginActivity : AppCompatActivity() {
         val plantRepository = PlantRepository(plantDao, plantApiService)
 
         // 3. SharedPreferencesUtil (Storage dependency)
-        // FIX: Instantiate the class by passing context, assuming the class constructor requires it.
+        // Instantiate the class by passing context, matching the fix in LoginActivity
         val sharedPreferencesUtilDep = SharedPreferencesUtil(applicationContext)
 
         // 4. Instantiate the class-based FirebaseUtils
@@ -63,14 +62,14 @@ class LoginActivity : AppCompatActivity() {
 
         val emailField = findViewById<EditText>(R.id.inputEmail)
         val passwordField = findViewById<EditText>(R.id.inputPassword)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
-        // The XML uses btnGoogle and btnGoToSignup, but the code uses btnGoogleLogin and btnSignup.
-        // I will use the code names and assume they match the XML IDs based on functionality.
-        val btnGoogleLogin = findViewById<ImageButton>(R.id.btnGoogle) // Check XML ID: btnGoogle
-        val btnSignup = findViewById<Button>(R.id.btnGoToSignup) // Check XML ID: btnGoToSignup
+        val repeatPasswordField = findViewById<EditText>(R.id.inputRepeatPassword)
+        // Assuming there is a btnSignUp ID for the primary registration button
+        val btnSignUp = findViewById<Button>(R.id.btnSignUp)
+        // Assuming there is an ID for the Google button (e.g., btnGoogle or btnGoogleRegister)
+        val btnGoogleRegister = findViewById<ImageButton>(R.id.btnGoogle)
+        val btnGoToLogin = findViewById<Button>(R.id.btnGoToLogin)
 
-
-        // Configure Google Sign-In
+        // Configure Google Sign-In (Unchanged)
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -78,34 +77,47 @@ class LoginActivity : AppCompatActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Set up Listeners
-        btnLogin.setOnClickListener {
+        // Google Sign Up Listener
+        btnGoogleRegister.setOnClickListener {
+            startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+        }
+
+        // Email/Password Sign Up (Registration) Listener
+        btnSignUp.setOnClickListener {
             val email = emailField.text.toString().trim()
             val pass = passwordField.text.toString().trim()
+            val repeatPass = repeatPasswordField.text.toString().trim()
 
+            // 1. Validation
             if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Please enter both email and password.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Fields cannot be empty", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            if (pass != repeatPass) {
+                Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // 2. Extract a display name (You might want a dedicated name input field)
+            val displayName = email.substringBefore("@")
+
+            // 3. Call Spring-heavy Register flow
             // FIX: Call instance method on firebaseUtils
-            // NOTE: This assumes you ADD the loginWithEmail method to FirebaseUtils.
-            firebaseUtils.loginWithEmail(
+            firebaseUtils.registerUser(
                 context = this,
-                coroutineScope = lifecycleScope,
+                scope = lifecycleScope,
                 email = email,
                 pass = pass,
+                name = displayName,
                 onSuccess = { goToMain() }
             )
         }
 
-        btnGoogleLogin.setOnClickListener {
-            val signInIntent = googleSignInClient.signInIntent
-            startActivityForResult(signInIntent, RC_SIGN_IN)
-        }
-
-        btnSignup.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
+        // NEW: Go to Login Screen Listener
+        btnGoToLogin.setOnClickListener {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish() // Finish registration activity so user can't press back to it
         }
     }
 
@@ -121,9 +133,9 @@ class LoginActivity : AppCompatActivity() {
                 val name = account.displayName ?: "User"
 
                 if (googleIdToken != null) {
+                    // IMPORTANT CHANGE: Call the new dedicated function
                     // FIX: Call instance method on firebaseUtils
-                    // NOTE: This assumes you ADD the exchangeGoogleLoginToken method to FirebaseUtils.
-                    firebaseUtils.exchangeGoogleLoginToken(
+                    firebaseUtils.exchangeGoogleRegisterToken(
                         this,
                         lifecycleScope,
                         googleIdToken,
@@ -132,7 +144,7 @@ class LoginActivity : AppCompatActivity() {
                     )
                 }
             } catch (e: ApiException) {
-                Log.e("LoginActivity", "Google Sign-In failed", e)
+                Log.e("RegisterActivity", "Google Sign-In failed", e)
                 Toast.makeText(this, "Google Sign-In failed: ${e.statusCode}", Toast.LENGTH_SHORT).show()
             }
         }
