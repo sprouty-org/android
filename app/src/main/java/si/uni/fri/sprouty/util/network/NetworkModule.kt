@@ -17,7 +17,7 @@ object NetworkModule {
 
     // IMPORTANT: Use the correct URL for your local network/Docker setup.
     // '10.0.2.2' is the standard way for an Android Emulator to access the host machine's localhost.
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "http://192.168.1.15:8080/"
 
     /**
      * Creates and configures the Retrofit instance.
@@ -27,8 +27,8 @@ object NetworkModule {
     fun provideRetrofit(context: Context): Retrofit {
         // 1. Logging Interceptor (for debugging API requests/responses)
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            // Set to Level.BODY for full request/response JSON details
-            level = HttpLoggingInterceptor.Level.BODY
+            // Change from BODY to HEADERS to avoid the "closed" crash
+            level = HttpLoggingInterceptor.Level.HEADERS
         }
 
         // 2. OkHttpClient with the Interceptors

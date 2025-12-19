@@ -22,8 +22,8 @@ class PlantRepository(
     /**
      * Sends image to backend, gets the AI-generated data, and saves to Room.
      */
-    suspend fun identifyAndSavePlant(userId: String, imagePart: MultipartBody.Part): PlantIdentificationResponse? {
-        val response = plantApiService.identifyPlant(userId, imagePart)
+    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part): PlantIdentificationResponse? {
+        val response = plantApiService.identifyPlant(imagePart)
         if (response.isSuccessful && response.body() != null) {
             val result = response.body()!!
 
@@ -48,11 +48,11 @@ class PlantRepository(
 
     // --- 3. REMOTE SYNC (PULL) ---
 
-    suspend fun syncPlantsFromRemote(userId: String) {
+    suspend fun syncPlantsFromRemote(userId: String?) {
         Log.d(TAG, "Starting remote sync for user: $userId")
         try {
             // 1. Fetch from Spring Boot API
-            val remoteUserPlants = plantApiService.getRemotePlants(userId)
+            val remoteUserPlants = plantApiService.getRemotePlants()
 
             // 2. Map remote list (UserPlant) to local Room list (Plant)
             val localPlants = remoteUserPlants.map { remote ->
@@ -97,10 +97,10 @@ class PlantRepository(
 
     // --- 4. DELETE ---
 
-    suspend fun deletePlant(userId: String, plant: Plant) {
+    suspend fun deletePlant(plant: Plant) {
         plant.firebaseId?.let { id ->
             try {
-                plantApiService.deletePlant(userId, id)
+                plantApiService.deletePlant(id)
             } catch (e: Exception) {
                 Log.e(TAG, "Remote delete failed")
             }

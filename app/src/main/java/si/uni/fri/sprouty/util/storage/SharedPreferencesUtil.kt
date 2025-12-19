@@ -45,6 +45,11 @@ class SharedPreferencesUtil(context: Context) { // Converted from object to clas
         return sharedPrefs.getString(KEY_AUTH_TOKEN, null)
     }
 
+    fun getUserId(): String? {
+        return sharedPrefs.getString(KEY_PROFILE_NAME, null)
+    }
+
+
     /**
      * Clears all user data (JWT and profile name).
      */

@@ -42,7 +42,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         // 4. Instantiate the class-based FirebaseUtils
         // Note: The PlantRepository is intentionally passed here for the logout function.
-        firebaseUtils = FirebaseUtils(authApiService, sharedPreferencesUtilDep, plantRepository)
+        firebaseUtils = FirebaseUtils(authApiService, sharedPreferencesUtilDep)
 
         setupLogoutButton()
     }

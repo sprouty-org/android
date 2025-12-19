@@ -25,7 +25,7 @@ class AuthInterceptor(
 ) : Interceptor {
 
     private val TAG = "AuthInterceptor"
-    private val BASE_URL = "http://10.0.2.2:8080/"
+    private val BASE_URL = "http://192.168.1.15:8080/"
 
     // Manually instantiate the dependencies needed inside the interceptor using lazy
     private val sharedPrefsUtil by lazy { SharedPreferencesUtil(context.applicationContext) }
@@ -53,10 +53,17 @@ class AuthInterceptor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         // Use the INSTANCE method (no Context needed now that SharedPreferencesUtil is a class)
+        val originalRequest = chain.request()
+        val path = originalRequest.url.encodedPath
+
+        // 1. SKIP logic for login/register endpoints
+        if (path.contains("/users/register") || path.contains("/users/login")) {
+            return chain.proceed(originalRequest)
+        }
+
         var jwt = sharedPrefsUtil.getAuthToken()
 
-        // 1) Attach existing internal JWT to the header
-        val originalRequest = chain.request()
+        // 2. Attach JWT only for other endpoints (like /plants/identify)
         val requestWithAuth = originalRequest.newBuilder()
             .apply {
                 if (jwt != null) {

@@ -28,6 +28,7 @@ import si.uni.fri.sprouty.ui.garden.PlantViewModelFactory
 import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
+import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     // Launcher for taking a new photo
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        bitmap?.let { viewModel.identifyAndAddPlant(currentUserId, it) }
+        bitmap?.let { viewModel.identifyAndAddPlant(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +63,9 @@ class MainActivity : AppCompatActivity() {
         observeViewModel()
 
         // Initial sync: now requires userId
+        // get the user's ID from SharedPreferences or wherever you store it
+        val sharedPreferencesUtil = SharedPreferencesUtil(applicationContext)
+        val currentUserId = sharedPreferencesUtil.getUserId()
         viewModel.refreshData(currentUserId)
     }
 
@@ -112,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val bitmap =
                 ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, uri))
-            viewModel.identifyAndAddPlant(currentUserId, bitmap)
+            viewModel.identifyAndAddPlant(bitmap)
         } catch (e: Exception) {
             Log.e("MainActivity", "Error decoding gallery image", e)
         }

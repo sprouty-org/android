@@ -43,7 +43,7 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
      * Triggered after the user takes a photo.
      * Handles image conversion and calling the repository.
      */
-    fun identifyAndAddPlant(userId: String, bitmap: Bitmap) {
+    fun identifyAndAddPlant(bitmap: Bitmap) {
         viewModelScope.launch {
             _isIdentifying.value = true
 
@@ -55,7 +55,7 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
             val body = MultipartBody.Part.createFormData("image", "upload.jpg", requestFile)
 
             // Call Repository (which saves to Room automatically on success)
-            val result = repository.identifyAndSavePlant(userId, body)
+            val result = repository.identifyAndSavePlant(body)
 
             _identificationResult.value = result
             _isIdentifying.value = false
@@ -65,7 +65,7 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
     /**
      * Pull-to-refresh logic.
      */
-    fun refreshData(userId: String) = viewModelScope.launch {
+    fun refreshData(userId: String?) = viewModelScope.launch {
         repository.syncPlantsFromRemote(userId)
     }
 
@@ -73,7 +73,7 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
      * Delete plant from local and remote.
      */
     fun deletePlant(userId: String, plant: Plant) = viewModelScope.launch {
-        repository.deletePlant(userId, plant)
+        repository.deletePlant(plant)
     }
 
     fun clearLocalCache() = viewModelScope.launch {
