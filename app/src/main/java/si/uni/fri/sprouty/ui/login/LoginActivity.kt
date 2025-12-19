@@ -64,10 +64,9 @@ class LoginActivity : AppCompatActivity() {
         val emailField = findViewById<EditText>(R.id.inputEmail)
         val passwordField = findViewById<EditText>(R.id.inputPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
-        // The XML uses btnGoogle and btnGoToSignup, but the code uses btnGoogleLogin and btnSignup.
-        // I will use the code names and assume they match the XML IDs based on functionality.
-        val btnGoogleLogin = findViewById<ImageButton>(R.id.btnGoogle) // Check XML ID: btnGoogle
-        val btnSignup = findViewById<Button>(R.id.btnGoToSignup) // Check XML ID: btnGoToSignup
+
+        val btnGoogleLogin = findViewById<ImageButton>(R.id.btnGoogle)
+        val btnSignup = findViewById<Button>(R.id.btnGoToSignup)
 
 
         // Configure Google Sign-In

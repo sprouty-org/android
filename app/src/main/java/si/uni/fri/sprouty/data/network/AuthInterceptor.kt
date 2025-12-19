@@ -25,6 +25,7 @@ class AuthInterceptor(
 ) : Interceptor {
 
     private val TAG = "AuthInterceptor"
+    private val BASE_URL = "http://10.0.2.2:8080/"
 
     // Manually instantiate the dependencies needed inside the interceptor using lazy
     private val sharedPrefsUtil by lazy { SharedPreferencesUtil(context.applicationContext) }
@@ -38,7 +39,7 @@ class AuthInterceptor(
 
     private val baseRetrofitService by lazy {
         Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8080/") // Must match NetworkModule's BASE_URL
+            .baseUrl(BASE_URL) // Must match NetworkModule's BASE_URL
             .client(baseRetrofit)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

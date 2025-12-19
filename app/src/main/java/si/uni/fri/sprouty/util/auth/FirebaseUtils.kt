@@ -30,7 +30,7 @@ class FirebaseUtils(
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val TAG = "FirebaseUtils"
 
-    // --- Core Network Operations (Logic moved from APIHandler.kt) ---
+    // --- Core Network Operations ---
 
     /**
      * Handles the Google Sign-Up/Registration flow.
@@ -256,7 +256,7 @@ class FirebaseUtils(
     /**
      * Securely logs out the user by clearing local data and Firebase session.
      */
-    fun logout(context: Context, onLogoutSuccess: () -> Unit) {
+    fun logout(onLogoutSuccess: () -> Unit) {
         Log.i(TAG, "Starting secure user logout...")
         firebaseAuth.signOut()
         sharedPreferencesUtil.clearUser()

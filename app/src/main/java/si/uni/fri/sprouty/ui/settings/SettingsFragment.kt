@@ -52,7 +52,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         logoutButton?.setOnPreferenceClickListener {
             // FIX: Call the instance method on firebaseUtils
-            firebaseUtils.logout(requireContext()) {
+            firebaseUtils.logout {
                 // Lambda function executed on successful clearance of local data
                 navigateToLogin()
             }

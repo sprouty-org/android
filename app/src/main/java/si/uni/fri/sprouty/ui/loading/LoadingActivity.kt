@@ -1,22 +1,22 @@
 package si.uni.fri.sprouty.ui.loading
 
+// Use the new package locations/names you provided
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import si.uni.fri.sprouty.MainActivity
 import si.uni.fri.sprouty.R
+import si.uni.fri.sprouty.data.network.AuthApiService
 import si.uni.fri.sprouty.ui.login.LoginActivity
 import si.uni.fri.sprouty.ui.register.RegisterActivity
-// Use the new package locations/names you provided
 import si.uni.fri.sprouty.util.auth.JwtUtils
-import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 import si.uni.fri.sprouty.util.network.NetworkModule
-import si.uni.fri.sprouty.data.network.AuthApiService // Assuming the interface is named AuthService
+import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
 
 class LoadingActivity : AppCompatActivity() {
@@ -26,8 +26,16 @@ class LoadingActivity : AppCompatActivity() {
     private lateinit var jwtUtils: JwtUtils
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // This handles the transition from the system splash screen
+        val splashScreen: SplashScreen = installSplashScreen()
+
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_loading)
+
+        var isReady = false
+        splashScreen.setKeepOnScreenCondition { !isReady }
 
         // 2. Manually set up the dependency injection chain
         // A. SharedPreferencesUtil needs Context
@@ -41,11 +49,10 @@ class LoadingActivity : AppCompatActivity() {
         jwtUtils = JwtUtils(authApiService, sharedPreferencesUtil)
 
         // Delay for splash screen effect, then check auth status
-        Handler(Looper.getMainLooper()).postDelayed({
-            lifecycleScope.launch {
-                handleStartupAuth()
-            }
-        }, 1500)
+        lifecycleScope.launch {
+            handleStartupAuth()
+            isReady = true // This will dismiss the splash and show the target activity
+        }
     }
 
     /**

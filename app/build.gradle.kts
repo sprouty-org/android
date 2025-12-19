@@ -62,6 +62,8 @@ kotlin {
 
 
 dependencies {
+
+    implementation(libs.androidx.core.splashscreen)
     // --- Room Database (Required for Plant Persistence) ---
     // Define the version here if not using TOML; otherwise, define it in TOML
 

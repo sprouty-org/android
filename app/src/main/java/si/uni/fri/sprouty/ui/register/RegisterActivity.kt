@@ -63,9 +63,8 @@ class RegisterActivity : AppCompatActivity() {
         val emailField = findViewById<EditText>(R.id.inputEmail)
         val passwordField = findViewById<EditText>(R.id.inputPassword)
         val repeatPasswordField = findViewById<EditText>(R.id.inputRepeatPassword)
-        // Assuming there is a btnSignUp ID for the primary registration button
+
         val btnSignUp = findViewById<Button>(R.id.btnSignUp)
-        // Assuming there is an ID for the Google button (e.g., btnGoogle or btnGoogleRegister)
         val btnGoogleRegister = findViewById<ImageButton>(R.id.btnGoogle)
         val btnGoToLogin = findViewById<Button>(R.id.btnGoToLogin)
 
@@ -98,6 +97,13 @@ class RegisterActivity : AppCompatActivity() {
                 Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            if(pass.length < 6){
+                Toast.makeText(this, "Password must be at least 6 characters long", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // )
 
             // 2. Extract a display name (You might want a dedicated name input field)
             val displayName = email.substringBefore("@")

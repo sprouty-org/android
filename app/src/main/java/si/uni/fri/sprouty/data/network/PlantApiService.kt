@@ -1,29 +1,35 @@
 package si.uni.fri.sprouty.data.network
 
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
-import si.uni.fri.sprouty.data.model.Plant // Updated import
-import si.uni.fri.sprouty.data.model.PlantSyncResponse // Updated import
+import okhttp3.MultipartBody
+import retrofit2.Response
+import retrofit2.http.*
+import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
+import si.uni.fri.sprouty.data.model.UserPlant
 
-/**
- * Retrofit interface for interacting with the Spring Boot 'plant-service' endpoints.
- * NOTE: Manual JWT token headers have been REMOVED as AuthInterceptor handles this now.
- */
 interface PlantApiService {
 
-    @GET("plants/user")
-    suspend fun getRemotePlants(): List<Plant> // CLEANED: No @Header("Authorization")
+    @Multipart
+    @POST("plants/identify")
+    suspend fun identifyPlant(
+        @Header("X-User-Id") userId: String,
+        @Part image: MultipartBody.Part
+    ): Response<PlantIdentificationResponse>
 
-    @POST("plants/sync")
-    suspend fun syncPlant(
-        @Body plant: Plant
-    ): PlantSyncResponse // CLEANED: No @Header("Authorization")
+    @GET("plants")
+    suspend fun getRemotePlants(
+        @Header("X-User-Id") userId: String
+    ): List<UserPlant>
 
-    @DELETE("plants/{firebaseId}")
+    @DELETE("plants/{id}")
     suspend fun deletePlant(
-        @Path("firebaseId") firebaseId: String
-    ) // CLEANED: No @Header("Authorization")
+        @Header("X-User-Id") userId: String,
+        @Path("id") firebaseId: String
+    ): Response<Unit>
+
+    @PUT("plants/{id}")
+    suspend fun updateUserPlant(
+        @Header("X-User-Id") userId: String,
+        @Path("id") firebaseId: String,
+        @Body userPlant: UserPlant
+    ): Response<Unit>
 }

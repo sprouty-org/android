@@ -1,26 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="8dp"
-    android:layout_margin="4dp"
-    android:gravity="center"
-    android:background="@drawable/green_outline">
+    android:layout_height="120dp"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
 
-    <TextView
-        android:id="@+id/textPlantName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Plant Name"
-        android:textStyle="bold"
-        android:textColor="@android:color/black"
-        android:layout_marginBottom="4dp"/>
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/imagePlant"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/ic_launcher_foreground"/>
-</LinearLayout>
+        <ImageView
+            android:id="@+id/imgPlant"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_flower_rose"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvPlantName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="Monstera Deliciosa"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imgPlant"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvSpecies"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Scientific Name"
+            android:textColor="#666666"
+            android:textSize="14sp"
+            android:fontStyle="italic"
+            app:layout_constraintEnd_toEndOf="@+id/tvPlantName"
+            app:layout_constraintStart_toStartOf="@+id/tvPlantName"
+            app:layout_constraintTop_toBottomOf="@+id/tvPlantName" />
+
+        <TextView
+            android:id="@+id/tvWateringInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Water every 7 days"
+            android:textColor="@color/sprouty_green"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/tvSpecies" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

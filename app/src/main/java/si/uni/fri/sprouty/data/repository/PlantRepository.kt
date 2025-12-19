@@ -1,111 +1,117 @@
-package si.uni.fri.sprouty.data.repository // <--- NEW PACKAGE
+package si.uni.fri.sprouty.data.repository
 
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
-import si.uni.fri.sprouty.data.database.PlantDao // <--- NEW IMPORT
-import si.uni.fri.sprouty.data.model.Plant // <--- NEW IMPORT
-import si.uni.fri.sprouty.data.network.PlantApiService // <--- NEW IMPORT
+import okhttp3.MultipartBody
+import si.uni.fri.sprouty.data.database.PlantDao
+import si.uni.fri.sprouty.data.model.Plant
+import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
+import si.uni.fri.sprouty.data.network.PlantApiService
 
-/**
- * Repository module for handling data operations related to Plant.
- * It abstracts the data sources (Room and Network/Firestore).
- */
 class PlantRepository(
     private val plantDao: PlantDao,
-    private val plantApiService: PlantApiService // Dependency for talking to the Spring Boot backend
+    private val plantApiService: PlantApiService
 ) {
     private val TAG = "PlantRepository"
 
-    // --- 1. LOCAL DATA FLOW (Room) ---
+    // --- 1. LOCAL DATA FLOW ---
+    fun getAllPlants(): Flow<List<Plant>> = plantDao.getAllPlants()
+
+    // --- 2. IDENTIFICATION FLOW (The New Logic) ---
 
     /**
-     * Retrieves all plants from the local Room database.
-     * FIX: This function signature matches the PlantDao and is correct.
+     * Sends image to backend, gets the AI-generated data, and saves to Room.
      */
-    fun getAllPlants(): Flow<List<Plant>> {
-        // The repository simply returns the Flow exposed by the DAO
-        return plantDao.getAllPlants()
-    }
+    suspend fun identifyAndSavePlant(userId: String, imagePart: MultipartBody.Part): PlantIdentificationResponse? {
+        val response = plantApiService.identifyPlant(userId, imagePart)
+        if (response.isSuccessful && response.body() != null) {
+            val result = response.body()!!
 
-    // --- 2. SYNCHRONIZATION AND WRITE OPERATIONS ---
+            val localPlant = Plant(
+                firebaseId = result.userPlant.id,
+                speciesName = result.userPlant.speciesName ?: "Unknown",
+                customName = result.userPlant.customName,
+                plantedDate = result.userPlant.plantedDate,
+                lastWatered = result.userPlant.lastWatered,
+                healthStatus = result.userPlant.healthStatus ?: "Healthy",
+                currentGrowthStage = result.userPlant.currentGrowthStage ?: "New",
+                targetWateringInterval = result.userPlant.targetWateringInterval,
+                requiredLightLevel = result.userPlant.requiredLightLevel ?: "Bright Indirect",
+                notificationsEnabled = true // Default for new plants
+            )
 
-    /**
-     * Saves a new plant to the local database and initiates a sync to the remote server.
-     */
-    suspend fun saveNewPlant(plant: Plant) {
-        // Step 1: Save locally for instant UI update and get the localId
-        val localId = plantDao.insert(plant)
-        Log.d(TAG, "Plant saved locally with ID: $localId")
-
-        // Step 2: Sync to remote server
-        val plantForSync = plant.copy(localId = localId)
-        syncPlantToRemote(plantForSync)
-    }
-
-    /**
-     * Internal function to handle the remote sync of a single plant.
-     */
-    private suspend fun syncPlantToRemote(plant: Plant) {
-        try {
-            // NOTE: Assuming AuthInterceptor handles the token header.
-            val response = plantApiService.syncPlant(plant)
-
-            if (response.success) {
-                // Step 3: Update local plant with the official firebaseId from the server
-                val updatedPlant = plant.copy(firebaseId = response.firebaseId)
-                plantDao.update(updatedPlant)
-                Log.d(TAG, "Sync successful. Plant updated with firebaseId: ${response.firebaseId}")
-            } else {
-                Log.e(TAG, "Remote sync failed: ${response.message}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Network error during sync: ${e.message}")
+            plantDao.insert(localPlant)
+            return result
         }
+        return null
     }
 
-    /**
-     * Pulls the latest list of plants from the server and updates the local cache.
-     */
-    suspend fun syncPlantsFromRemote() {
-        Log.d(TAG, "Starting remote sync...")
-        try {
-            // NOTE: Assuming AuthInterceptor handles the token header.
-            val remotePlants = plantApiService.getRemotePlants()
+    // --- 3. REMOTE SYNC (PULL) ---
 
-            // Wipe the local cache and replace it with the fresh data from the server
+    suspend fun syncPlantsFromRemote(userId: String) {
+        Log.d(TAG, "Starting remote sync for user: $userId")
+        try {
+            // 1. Fetch from Spring Boot API
+            val remoteUserPlants = plantApiService.getRemotePlants(userId)
+
+            // 2. Map remote list (UserPlant) to local Room list (Plant)
+            val localPlants = remoteUserPlants.map { remote ->
+                Plant(
+                    // IDs
+                    localId = 0, // Room will auto-generate this because it's the PrimaryKey
+                    firebaseId = remote.id,
+                    speciesName = remote.speciesName ?: "Unknown",
+
+                    // Customization
+                    customName = remote.customName ?: remote.speciesName,
+                    plantedDate = remote.plantedDate,
+                    lastWatered = remote.lastWatered,
+                    userPictureUrl = null, // Backend doesn't store this yet
+
+                    // Health & Status (Defaults if null from server)
+                    healthStatus = remote.healthStatus ?: "Healthy",
+                    currentGrowthStage = remote.currentGrowthStage ?: "N/A",
+                    notes = null,
+
+                    // Sensor & Notifications
+                    notificationsEnabled = true,
+                    connectedSensorId = null,
+                    lastSensorDataUrl = null,
+
+                    // Requirements
+                    targetWateringInterval = remote.targetWateringInterval,
+                    requiredLightLevel = remote.requiredLightLevel ?: "Unknown"
+                )
+            }
+
+            // 3. Clear and Refresh Local Cache
             plantDao.deleteAll()
-            plantDao.insertAll(remotePlants)
+            plantDao.insertAll(localPlants)
 
-            Log.d(TAG, "Sync complete. Inserted ${remotePlants.size} plants.")
+            Log.d(TAG, "Sync complete. Inserted ${localPlants.size} plants from remote.")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch plants from remote server: ${e.message}")
+            Log.e(TAG, "Failed to sync plants from remote server: ${e.message}")
+            e.printStackTrace()
         }
     }
 
-    /**
-     * Handles the deletion of a plant from both local and remote sources.
-     */
-    suspend fun deletePlant(plant: Plant) {
-        // Step 1: Delete remotely first (if firebaseId exists)
-        if (plant.firebaseId != null) {
+    // --- 4. DELETE ---
+
+    suspend fun deletePlant(userId: String, plant: Plant) {
+        plant.firebaseId?.let { id ->
             try {
-                // Assuming successful response is implied by no exception
-                plantApiService.deletePlant(plant.firebaseId)
+                plantApiService.deletePlant(userId, id)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete plant remotely: ${e.message}")
+                Log.e(TAG, "Remote delete failed")
             }
         }
-
-        // Step 2: Delete locally
         plantDao.delete(plant)
-        Log.d(TAG, "Plant deleted locally.")
     }
 
-    /**
-     * Clears all local data.
-     */
-    suspend fun clearLocalData() {
+    suspend fun clearLocalData()
+    {
+        //cleans the ROOM db
         plantDao.deleteAll()
-        Log.i(TAG, "Local plant cache cleared.")
+
     }
 }

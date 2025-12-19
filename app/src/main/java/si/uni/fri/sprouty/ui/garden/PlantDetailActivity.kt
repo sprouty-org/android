@@ -1,34 +1,41 @@
 package si.uni.fri.sprouty.ui.garden
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.tabs.TabLayout
 import si.uni.fri.sprouty.databinding.ActivityPlantDetailBinding
 
 class PlantDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPlantDetailBinding
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPlantDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val name = intent.getStringExtra("plant_name")
-        val imageRes = intent.getIntExtra("plant_image", 0)
+        // 1. Back Button
+        binding.btnBack.setOnClickListener { finish() }
 
-        binding.textPlantName.text = name
-        binding.imagePlant.setImageResource(imageRes)
+        // 2. Extract Data from Intent
+        val speciesName = intent.getStringExtra("SPECIES_NAME") ?: "Unknown"
+        val customName = intent.getStringExtra("CUSTOM_NAME")
+        val fact = intent.getStringExtra("PLANT_FACT") ?: "Botanical data loading..."
+        val water = intent.getIntExtra("WATER_INTERVAL", 0)
+        val light = intent.getStringExtra("LIGHT_LEVEL") ?: "Medium Light"
 
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                when (tab.position) {
-                    0 -> { /* show picture section */ }
-                    1 -> { /* show lifecycle section */ }
-                }
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
+        // 3. Bind to UI
+        binding.tvDetailTitle.text = customName ?: speciesName
+        binding.tvDetailFact.text = fact
+        binding.chipWater.text = "Every $water days"
+        binding.chipLight.text = light
+
+        binding.tvDetailAttributes.text = """
+            Species: $speciesName
+            Toxicity: ${intent.getStringExtra("PLANT_TOX") ?: "N/A"}
+            Growth: ${intent.getStringExtra("PLANT_GROWTH") ?: "N/A"}
+            Soil: ${intent.getStringExtra("PLANT_SOIL") ?: "N/A"}
+        """.trimIndent()
     }
 }
