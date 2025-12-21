@@ -27,6 +27,7 @@
             android:exported="false" />
         <activity
             android:name=".ui.garden.PlantDetailActivity"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar"
             android:exported="false" />
         <activity
             android:name=".ui.login.LoginActivity"

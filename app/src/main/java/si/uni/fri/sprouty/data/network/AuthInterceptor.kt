@@ -66,7 +66,7 @@ class AuthInterceptor(
         // 2. Attach JWT only for other endpoints (like /plants/identify)
         val requestWithAuth = originalRequest.newBuilder()
             .apply {
-                if (jwt != null) {
+                if (jwt != null && jwt.isNotEmpty()) {
                     header("Authorization", "Bearer $jwt")
                 }
             }

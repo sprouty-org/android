@@ -1,41 +1,40 @@
 package si.uni.fri.sprouty.ui.garden
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import si.uni.fri.sprouty.databinding.ActivityPlantDetailBinding
 
 class PlantDetailActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityPlantDetailBinding
 
-    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPlantDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 1. Back Button
         binding.btnBack.setOnClickListener { finish() }
 
-        // 2. Extract Data from Intent
-        val speciesName = intent.getStringExtra("SPECIES_NAME") ?: "Unknown"
-        val customName = intent.getStringExtra("CUSTOM_NAME")
-        val fact = intent.getStringExtra("PLANT_FACT") ?: "Botanical data loading..."
-        val water = intent.getIntExtra("WATER_INTERVAL", 0)
-        val light = intent.getStringExtra("LIGHT_LEVEL") ?: "Medium Light"
+        // Extract Data
+        val species = intent.getStringExtra("SPECIES_NAME") ?: "Unknown"
+        val custom = intent.getStringExtra("CUSTOM_NAME")
+        val fact = intent.getStringExtra("PLANT_FACT") ?: "No botanical details available."
+        val tox = intent.getStringExtra("PLANT_TOX") ?: "Unknown"
+        val growth = intent.getStringExtra("PLANT_GROWTH") ?: "Unknown"
+        val soil = intent.getStringExtra("PLANT_SOIL") ?: "Standard Potting Mix"
+        val type = intent.getStringExtra("PLANT_TYPE") ?: "Plant"
 
-        // 3. Bind to UI
-        binding.tvDetailTitle.text = customName ?: speciesName
+        // Bind to UI
+        binding.tvDetailTitle.text = custom ?: species
         binding.tvDetailFact.text = fact
-        binding.chipWater.text = "Every $water days"
-        binding.chipLight.text = light
+        binding.chipWater.text = "Every ${intent.getIntExtra("WATER_INTERVAL", 0)} days"
+        binding.chipLight.text = intent.getStringExtra("LIGHT_LEVEL") ?: "Medium Light"
 
         binding.tvDetailAttributes.text = """
-            Species: $speciesName
-            Toxicity: ${intent.getStringExtra("PLANT_TOX") ?: "N/A"}
-            Growth: ${intent.getStringExtra("PLANT_GROWTH") ?: "N/A"}
-            Soil: ${intent.getStringExtra("PLANT_SOIL") ?: "N/A"}
+            • Type: $type
+            • Species: $species
+            • Toxicity: $tox
+            • Growth Habit: $growth
+            • Preferred Soil: $soil
         """.trimIndent()
     }
 }

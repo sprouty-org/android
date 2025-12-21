@@ -47,14 +47,17 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
         viewModelScope.launch {
             _isIdentifying.value = true
 
-            // Convert Bitmap to MultipartBody.Part
             val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 30, stream)
             val byteArray = stream.toByteArray()
-            val requestFile = byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image", "upload.jpg", requestFile)
 
-            // Call Repository (which saves to Room automatically on success)
+            // 1. Explicitly define the RequestBody with a MediaType
+            val requestFile = byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull())
+
+            // 2. Create the Part. Use "image" as the name.
+            // IMPORTANT: The third parameter must be a filename like "photo.jpg"
+            val body = MultipartBody.Part.createFormData("image", "photo.jpg", requestFile)
+
             val result = repository.identifyAndSavePlant(body)
 
             _identificationResult.value = result

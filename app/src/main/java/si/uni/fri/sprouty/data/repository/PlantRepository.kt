@@ -26,18 +26,28 @@ class PlantRepository(
         val response = plantApiService.identifyPlant(imagePart)
         if (response.isSuccessful && response.body() != null) {
             val result = response.body()!!
+            val user = result.userPlant
+            val master = result.masterData
 
             val localPlant = Plant(
-                firebaseId = result.userPlant.id,
-                speciesName = result.userPlant.speciesName ?: "Unknown",
-                customName = result.userPlant.customName,
-                plantedDate = result.userPlant.plantedDate,
-                lastWatered = result.userPlant.lastWatered,
-                healthStatus = result.userPlant.healthStatus ?: "Healthy",
-                currentGrowthStage = result.userPlant.currentGrowthStage ?: "New",
-                targetWateringInterval = result.userPlant.targetWateringInterval,
-                requiredLightLevel = result.userPlant.requiredLightLevel ?: "Bright Indirect",
-                notificationsEnabled = true // Default for new plants
+                firebaseId = user.id,
+                speciesName = user.speciesName ?: "Unknown",
+                customName = user.customName,
+                plantedDate = user.plantedDate,
+                lastWatered = user.lastWatered,
+                healthStatus = user.healthStatus ?: "Healthy",
+                currentGrowthStage = user.currentGrowthStage ?: "New",
+                targetWateringInterval = user.targetWateringInterval,
+                requiredLightLevel = user.requiredLightLevel ?: "Bright Indirect",
+
+                // Mapping Master Data to Local Entity
+                botanicalFact = master.fact,
+                toxicity = master.tox,
+                growthHabit = master.growth,
+                soilType = master.soil,
+                botanicalType = master.type,
+                minTemp = master.minT,
+                maxTemp = master.maxT
             )
 
             plantDao.insert(localPlant)
@@ -75,8 +85,8 @@ class PlantRepository(
 
                     // Sensor & Notifications
                     notificationsEnabled = true,
-                    connectedSensorId = null,
-                    lastSensorDataUrl = null,
+                    //connectedSensorId = null,
+                    //lastSensorDataUrl = null,
 
                     // Requirements
                     targetWateringInterval = remote.targetWateringInterval,
