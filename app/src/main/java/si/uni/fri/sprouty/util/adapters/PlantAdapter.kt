@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.data.model.Plant
 
@@ -23,7 +24,8 @@ class PlantAdapter(private val onItemClick: (Plant) -> Unit) :
         holder.bind(getItem(position))
     }
 
-    class PlantViewHolder(itemView: View, val onClick: (Plant) -> Unit) : RecyclerView.ViewHolder(itemView) {
+    class PlantViewHolder(itemView: View, val onClick: (Plant) -> Unit) :
+        RecyclerView.ViewHolder(itemView) {
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
         private val tvName: TextView = itemView.findViewById(R.id.tvPlantName)
         private val tvSpecies: TextView = itemView.findViewById(R.id.tvSpecies)
@@ -34,15 +36,23 @@ class PlantAdapter(private val onItemClick: (Plant) -> Unit) :
             tvSpecies.text = plant.speciesName
             tvWater.text = "Water every ${plant.targetWateringInterval} days"
 
-            // TODO: Load image using Glide or Coil
-            // Glide.with(itemView.context).load(plant.userPictureUrl).into(imgPlant)
+            // Load image (using placeholder for better UX)
+            imgPlant.load(plant.imageUrl) {
+                crossfade(true)
+                placeholder(R.drawable.ic_flower_rose)
+                error(R.drawable.ic_flower_rose)
+            }
 
+            // Move this here so it works immediately
             itemView.setOnClickListener { onClick(plant) }
         }
     }
 
     class PlantDiffCallback : DiffUtil.ItemCallback<Plant>() {
-        override fun areItemsTheSame(oldItem: Plant, newItem: Plant): Boolean = oldItem.firebaseId == newItem.firebaseId
-        override fun areContentsTheSame(oldItem: Plant, newItem: Plant): Boolean = oldItem == newItem
+        override fun areItemsTheSame(oldItem: Plant, newItem: Plant): Boolean =
+            oldItem.firebaseId == newItem.firebaseId
+
+        override fun areContentsTheSame(oldItem: Plant, newItem: Plant): Boolean =
+            oldItem == newItem
     }
 }

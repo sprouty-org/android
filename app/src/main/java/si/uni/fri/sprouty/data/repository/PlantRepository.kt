@@ -1,6 +1,8 @@
 package si.uni.fri.sprouty.data.repository
 
 import android.util.Log
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import okhttp3.MultipartBody
 import si.uni.fri.sprouty.data.database.PlantDao
@@ -22,86 +24,103 @@ class PlantRepository(
     /**
      * Sends image to backend, gets the AI-generated data, and saves to Room.
      */
-    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part): PlantIdentificationResponse? {
-        val response = plantApiService.identifyPlant(imagePart)
-        if (response.isSuccessful && response.body() != null) {
-            val result = response.body()!!
-            val user = result.userPlant
-            val master = result.masterData
+    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part, imageUri: String): PlantIdentificationResponse? {
+        return try {
+            val response = plantApiService.identifyPlant(imagePart)
+            if (response.isSuccessful && response.body() != null) {
+                val result = response.body()!!
 
-            val localPlant = Plant(
-                firebaseId = user.id,
-                speciesName = user.speciesName ?: "Unknown",
-                customName = user.customName,
-                plantedDate = user.plantedDate,
-                lastWatered = user.lastWatered,
-                healthStatus = user.healthStatus ?: "Healthy",
-                currentGrowthStage = user.currentGrowthStage ?: "New",
-                targetWateringInterval = user.targetWateringInterval,
-                requiredLightLevel = user.requiredLightLevel ?: "Bright Indirect",
+                val localPlant = Plant(
+                    firebaseId = result.userPlant.id,
+                    speciesName = result.userPlant.speciesName ?: "Unknown",
+                    customName = result.userPlant.customName,
+                    lastWatered = result.userPlant.lastWatered,
+                    healthStatus = result.userPlant.healthStatus ?: "Healthy",
 
-                // Mapping Master Data to Local Entity
-                botanicalFact = master.fact,
-                toxicity = master.tox,
-                growthHabit = master.growth,
-                soilType = master.soil,
-                botanicalType = master.type,
-                minTemp = master.minT,
-                maxTemp = master.maxT
-            )
+                    // IMAGE: Using the local path we just created
+                    imageUrl = imageUri,
 
-            plantDao.insert(localPlant)
-            return result
+                    // MASTER DATA: Mapping these so they are cached offline
+                    botanicalFact = result.masterPlant.fact,
+                    toxicity = result.masterPlant.tox,
+                    growthHabit = result.masterPlant.growth,
+                    soilType = result.masterPlant.soil,
+                    botanicalType = result.masterPlant.type,
+
+                    // REQUIREMENTS
+                    targetWateringInterval = result.masterPlant.waterInterval,
+                    requiredLightLevel = result.masterPlant.light
+                )
+
+                plantDao.insert(localPlant)
+                result
+            } else {
+                Log.e("REPO", "Error: ${response.code()}")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("REPO", "Failure: ${e.message}")
+            null
         }
-        return null
     }
 
     // --- 3. REMOTE SYNC (PULL) ---
 
-    suspend fun syncPlantsFromRemote(userId: String?) {
-        Log.d(TAG, "Starting remote sync for user: $userId")
+    suspend fun syncPlantsFromRemote() {
         try {
-            // 1. Fetch from Spring Boot API
-            val remoteUserPlants = plantApiService.getRemotePlants()
+            coroutineScope {
+                // 1. Start both calls simultaneously
+                val userPlantsDeferred = async { plantApiService.getRemoteUserPlants() }
+                val masterPlantsDeferred = async { plantApiService.getRemoteMasterPlants() }
 
-            // 2. Map remote list (UserPlant) to local Room list (Plant)
-            val localPlants = remoteUserPlants.map { remote ->
-                Plant(
-                    // IDs
-                    localId = 0, // Room will auto-generate this because it's the PrimaryKey
-                    firebaseId = remote.id,
-                    speciesName = remote.speciesName ?: "Unknown",
+                // 2. Wait for both to finish
+                val remoteUserPlants = userPlantsDeferred.await()
+                val remoteMasterData = masterPlantsDeferred.await()
 
-                    // Customization
-                    customName = remote.customName ?: remote.speciesName,
-                    plantedDate = remote.plantedDate,
-                    lastWatered = remote.lastWatered,
-                    userPictureUrl = null, // Backend doesn't store this yet
+                // 2. Create a Map for quick lookup: Key is Species Name, Value is MasterPlant object
+                val masterMap = remoteMasterData.associateBy { it.speciesName }
 
-                    // Health & Status (Defaults if null from server)
-                    healthStatus = remote.healthStatus ?: "Healthy",
-                    currentGrowthStage = remote.currentGrowthStage ?: "N/A",
-                    notes = null,
+                // 3. Map UserPlants to local Entities, enriching them with Master data
+                val localPlants = remoteUserPlants.map { userRemote ->
+                    val masterPlant =
+                        masterMap[userRemote.speciesName] // Find matching botanical info
 
-                    // Sensor & Notifications
-                    notificationsEnabled = true,
-                    //connectedSensorId = null,
-                    //lastSensorDataUrl = null,
+                    Plant(
+                        localId = 0,
+                        firebaseId = userRemote.id,
+                        speciesName = userRemote.speciesName ?: "Unknown",
+                        customName = userRemote.customName ?: userRemote.speciesName,
+                        imageUrl = userRemote.imageUrl,
+                        lastWatered = userRemote.lastWatered,
+                        healthStatus = userRemote.healthStatus ?: "Healthy",
+                        connectedSensorId = userRemote.connectedSensorId,
+                        notificationsEnabled = userRemote.notificationsEnabled,
 
-                    // Requirements
-                    targetWateringInterval = remote.targetWateringInterval,
-                    requiredLightLevel = remote.requiredLightLevel ?: "Unknown"
-                )
+                        // Enrichment from Master Data (if it exists)
+                        botanicalFact = masterPlant?.fact,
+                        toxicity = masterPlant?.tox,
+                        growthHabit = masterPlant?.growth,
+                        soilType = masterPlant?.soil,
+                        botanicalType = masterPlant?.type,
+                        lifecycle = masterPlant?.life,
+                        fruitInfo = masterPlant?.fruit,
+                        uses = masterPlant?.uses,
+                        maxHeight = masterPlant?.maxHeight,
+                        minTemp = masterPlant?.minT,
+                        maxTemp = masterPlant?.maxT,
+
+                        // Requirements
+                        targetWateringInterval = masterPlant?.waterInterval ?: 7,
+                        requiredLightLevel = masterPlant?.light ?: "Unknown"
+                    )
+                }
+
+                // 4. Update Database
+                plantDao.deleteAll()
+                plantDao.insertAll(localPlants)
             }
-
-            // 3. Clear and Refresh Local Cache
-            plantDao.deleteAll()
-            plantDao.insertAll(localPlants)
-
-            Log.d(TAG, "Sync complete. Inserted ${localPlants.size} plants from remote.")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to sync plants from remote server: ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG, "Failed to sync: ${e.message}")
         }
     }
 

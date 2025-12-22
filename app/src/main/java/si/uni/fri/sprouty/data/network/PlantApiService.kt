@@ -3,6 +3,7 @@ package si.uni.fri.sprouty.data.network
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
+import si.uni.fri.sprouty.data.model.MasterPlant
 import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
 import si.uni.fri.sprouty.data.model.UserPlant
 
@@ -14,8 +15,11 @@ interface PlantApiService {
         @Part image: MultipartBody.Part
     ): Response<PlantIdentificationResponse>
 
-    @GET("plants")
-    suspend fun getRemotePlants(): List<UserPlant>
+    @GET("plants/master")
+    suspend fun getRemoteMasterPlants(): List<MasterPlant>
+
+    @GET("plants/user")
+    suspend fun getRemoteUserPlants(): List<UserPlant>
 
     @DELETE("plants/{id}")
     suspend fun deletePlant(

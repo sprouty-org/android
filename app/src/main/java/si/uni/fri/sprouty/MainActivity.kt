@@ -9,7 +9,6 @@ import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -29,7 +28,6 @@ import si.uni.fri.sprouty.ui.garden.PlantViewModelFactory
 import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
-import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
 class MainActivity : AppCompatActivity() {
 
@@ -44,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        bitmap?.let { viewModel.identifyAndAddPlant(it) }
+        bitmap?.let { viewModel.identifyAndAddPlant(it, applicationContext) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,11 +53,7 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         observeViewModel()
 
-        // Initial Data Fetch
-        val sharedPreferencesUtil = SharedPreferencesUtil(applicationContext)
-        sharedPreferencesUtil.getUserId()?.let { uid ->
-            viewModel.refreshData(uid)
-        }
+        viewModel.refreshData()
     }
 
     private fun setupDependencies() {
@@ -83,6 +77,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra("FIREBASE_ID", plant.firebaseId)
                 putExtra("SPECIES_NAME", plant.speciesName)
                 putExtra("CUSTOM_NAME", plant.customName)
+                putExtra("PLANT_IMAGE_URL", plant.imageUrl)
                 putExtra("WATER_INTERVAL", plant.targetWateringInterval)
                 putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
 
@@ -123,7 +118,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.identificationResult.collect { result ->
                 result?.let {
-                    Toast.makeText(this@MainActivity, "Added ${it.masterData.speciesName}!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "Added ${it.masterPlant.speciesName}!", Toast.LENGTH_SHORT).show()
                     viewModel.resetIdentificationResult()
                 }
             }
@@ -146,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val source = ImageDecoder.createSource(contentResolver, uri)
             val bitmap = ImageDecoder.decodeBitmap(source)
-            viewModel.identifyAndAddPlant(bitmap)
+            viewModel.identifyAndAddPlant(bitmap, applicationContext)
         } catch (e: Exception) {
             Log.e("MainActivity", "Error decoding image", e)
         }

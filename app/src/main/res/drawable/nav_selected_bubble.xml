@@ -1,9 +1,0 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/nav_selected_bubble_color" />
-    <corners android:radius="20dp" /> <!-- Bubble rounded corners -->
-    <size android:width="65dp" android:height="90dp" /> <!-- Bubble size -->
-    <padding
-        android:top="0dp"
-        android:bottom="0dp" />
-    <!-- Padding inside the bubble -->
-</shape>

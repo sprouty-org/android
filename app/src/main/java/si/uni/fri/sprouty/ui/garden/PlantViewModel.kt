@@ -1,5 +1,6 @@
 package si.uni.fri.sprouty.ui.garden
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -17,6 +18,7 @@ import si.uni.fri.sprouty.data.repository.PlantRepository
 import si.uni.fri.sprouty.data.model.Plant
 import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
 
@@ -43,22 +45,27 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
      * Triggered after the user takes a photo.
      * Handles image conversion and calling the repository.
      */
-    fun identifyAndAddPlant(bitmap: Bitmap) {
+    fun identifyAndAddPlant(bitmap: Bitmap, context: Context) {
         viewModelScope.launch {
             _isIdentifying.value = true
 
+            // 1. Save Bitmap to internal storage to get a permanent File Path
+            val imageFile = File(context.filesDir, "plant_${System.currentTimeMillis()}.jpg")
+            context.openFileOutput(imageFile.name, Context.MODE_PRIVATE).use { fos ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+            }
+            val imagePath = imageFile.absolutePath
+
+            // 2. Prepare the Multipart request
             val stream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 30, stream)
             val byteArray = stream.toByteArray()
 
-            // 1. Explicitly define the RequestBody with a MediaType
             val requestFile = byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull())
-
-            // 2. Create the Part. Use "image" as the name.
-            // IMPORTANT: The third parameter must be a filename like "photo.jpg"
             val body = MultipartBody.Part.createFormData("image", "photo.jpg", requestFile)
 
-            val result = repository.identifyAndSavePlant(body)
+            // 3. Pass the REAL imagePath to the repository
+            val result = repository.identifyAndSavePlant(body, imagePath)
 
             _identificationResult.value = result
             _isIdentifying.value = false
@@ -68,14 +75,14 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
     /**
      * Pull-to-refresh logic.
      */
-    fun refreshData(userId: String?) = viewModelScope.launch {
-        repository.syncPlantsFromRemote(userId)
+    fun refreshData() = viewModelScope.launch {
+        repository.syncPlantsFromRemote()
     }
 
     /**
      * Delete plant from local and remote.
      */
-    fun deletePlant(userId: String, plant: Plant) = viewModelScope.launch {
+    fun deletePlant(plant: Plant) = viewModelScope.launch {
         repository.deletePlant(plant)
     }
 

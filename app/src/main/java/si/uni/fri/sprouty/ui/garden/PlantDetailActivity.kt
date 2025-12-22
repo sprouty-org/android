@@ -2,6 +2,8 @@ package si.uni.fri.sprouty.ui.garden
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import coil.load
+import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.databinding.ActivityPlantDetailBinding
 
 class PlantDetailActivity : AppCompatActivity() {
@@ -13,6 +15,15 @@ class PlantDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnBack.setOnClickListener { finish() }
+
+        val imageUrl = intent.getStringExtra("PLANT_IMAGE_URL")
+
+        // Use Coil to load the image
+        binding.imagePlantDetail.load(imageUrl) {
+            crossfade(true)
+            placeholder(R.drawable.ic_flower_rose) // Your placeholder
+            error(R.drawable.ic_flower_rose)       // Fallback if load fails
+        }
 
         // Extract Data
         val species = intent.getStringExtra("SPECIES_NAME") ?: "Unknown"

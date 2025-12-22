@@ -12,7 +12,7 @@ import si.uni.fri.sprouty.data.model.Plant
 @Dao
 interface PlantDao {
 
-    @Query("SELECT * FROM plants ORDER BY plantedDate DESC")
+    @Query("SELECT * FROM plants")
     fun getAllPlants(): Flow<List<Plant>>
 
     @Query("SELECT * FROM plants WHERE firebaseId = :firebaseId LIMIT 1")
