@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra("PLANT_IMAGE_URL", plant.imageUrl)
                 putExtra("WATER_INTERVAL", plant.targetWateringInterval)
                 putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
+                putExtra("PLANT_HEIGHT", plant.maxHeight)
 
                 // Pass the new cached master data
                 putExtra("PLANT_FACT", plant.botanicalFact)
@@ -87,12 +88,21 @@ class MainActivity : AppCompatActivity() {
                 putExtra("PLANT_GROWTH", plant.growthHabit)
                 putExtra("PLANT_SOIL", plant.soilType)
                 putExtra("PLANT_TYPE", plant.botanicalType)
+                putExtra("PLANT_FRUIT", plant.fruitInfo)
+                putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
+
+                putExtra("MIN_TEMP", plant.minTemp)
+                putExtra("MAX_TEMP", plant.maxTemp)
+                putExtra("AIR_HUMIDITY", plant.minAirHumidity.toString() + " - " + plant.maxAirHumidity.toString() + "%")
+                putExtra("SOIL_HUMIDITY", plant.minSoilHumidity.toString() + " - " + plant.maxSoilHumidity.toString() + "%")
+                putExtra("PLANT_LIFE", plant.lifecycle)
             }
             startActivity(intent)
         }
         recyclerPlants.adapter = plantAdapter
 
         fabAddPlant.setOnClickListener { showImageSourceDialog() }
+
         findViewById<ImageView>(R.id.icon_settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }

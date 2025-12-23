@@ -39,8 +39,8 @@ class PlantAdapter(private val onItemClick: (Plant) -> Unit) :
             // Load image (using placeholder for better UX)
             imgPlant.load(plant.imageUrl) {
                 crossfade(true)
-                placeholder(R.drawable.ic_flower_rose)
-                error(R.drawable.ic_flower_rose)
+                placeholder(R.drawable.ic_missing_image)
+                error(R.drawable.ic_missing_image)
             }
 
             // Move this here so it works immediately

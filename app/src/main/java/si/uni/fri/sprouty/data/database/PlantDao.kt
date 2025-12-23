@@ -12,7 +12,8 @@ import si.uni.fri.sprouty.data.model.Plant
 @Dao
 interface PlantDao {
 
-    @Query("SELECT * FROM plants")
+    // get all plants and sort by local id
+    @Query("SELECT * FROM plants ORDER BY localId ASC")
     fun getAllPlants(): Flow<List<Plant>>
 
     @Query("SELECT * FROM plants WHERE firebaseId = :firebaseId LIMIT 1")

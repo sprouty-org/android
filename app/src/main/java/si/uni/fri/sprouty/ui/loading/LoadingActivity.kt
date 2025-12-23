@@ -21,7 +21,6 @@ import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
 class LoadingActivity : AppCompatActivity() {
 
-    // 1. Declare properties for your new utility classes (dependencies)
     private lateinit var sharedPreferencesUtil: SharedPreferencesUtil
     private lateinit var jwtUtils: JwtUtils
 
@@ -30,22 +29,18 @@ class LoadingActivity : AppCompatActivity() {
         // This handles the transition from the system splash screen
         val splashScreen: SplashScreen = installSplashScreen()
 
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_loading)
 
         var isReady = false
         splashScreen.setKeepOnScreenCondition { !isReady }
 
-        // 2. Manually set up the dependency injection chain
-        // A. SharedPreferencesUtil needs Context
         sharedPreferencesUtil = SharedPreferencesUtil(applicationContext)
 
-        // B. JwtUtils needs the SharedPreferencesUtil and the AuthService API
         val retrofit = NetworkModule.provideRetrofit(applicationContext)
+
         val authApiService = retrofit.create(AuthApiService::class.java)
 
-        // C. Initialize JwtUtils
         jwtUtils = JwtUtils(authApiService, sharedPreferencesUtil)
 
         // Delay for splash screen effect, then check auth status

@@ -16,19 +16,29 @@ class PlantRepository(
 ) {
     private val TAG = "PlantRepository"
 
-    // --- 1. LOCAL DATA FLOW ---
+    // --- HELPER FOR FLEXIBLE STRING PARSING ---
+    /**
+     * Splits "40, 60" or "40,60" and returns a Pair(min, max).
+     */
+    private fun parseHumidity(input: String?): Pair<Int?, Int?> {
+        if (input.isNullOrBlank()) return Pair(null, null)
+        val parts = input.split(",").map { it.trim() }
+        val min = parts.getOrNull(0)?.toIntOrNull()
+        val max = parts.getOrNull(1)?.toIntOrNull()
+        return Pair(min, max)
+    }
+
     fun getAllPlants(): Flow<List<Plant>> = plantDao.getAllPlants()
 
-    // --- 2. IDENTIFICATION FLOW (The New Logic) ---
-
-    /**
-     * Sends image to backend, gets the AI-generated data, and saves to Room.
-     */
     suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part, imageUri: String): PlantIdentificationResponse? {
         return try {
             val response = plantApiService.identifyPlant(imagePart)
             if (response.isSuccessful && response.body() != null) {
                 val result = response.body()!!
+
+                // Use the new parser here
+                val (minAir, maxAir) = parseHumidity(result.masterPlant.airH)
+                val (minSoil, maxSoil) = parseHumidity(result.masterPlant.soilH)
 
                 val localPlant = Plant(
                     firebaseId = result.userPlant.id,
@@ -36,18 +46,24 @@ class PlantRepository(
                     customName = result.userPlant.customName,
                     lastWatered = result.userPlant.lastWatered,
                     healthStatus = result.userPlant.healthStatus ?: "Healthy",
-
-                    // IMAGE: Using the local path we just created
+                    connectedSensorId = result.userPlant.connectedSensorId,
+                    notificationsEnabled = result.userPlant.notificationsEnabled,
                     imageUrl = imageUri,
-
-                    // MASTER DATA: Mapping these so they are cached offline
                     botanicalFact = result.masterPlant.fact,
                     toxicity = result.masterPlant.tox,
                     growthHabit = result.masterPlant.growth,
                     soilType = result.masterPlant.soil,
                     botanicalType = result.masterPlant.type,
-
-                    // REQUIREMENTS
+                    lifecycle = result.masterPlant.life,
+                    fruitInfo = result.masterPlant.fruit,
+                    uses = result.masterPlant.uses,
+                    maxHeight = result.masterPlant.maxHeight,
+                    minTemp = result.masterPlant.minT,
+                    maxTemp = result.masterPlant.maxT,
+                    minAirHumidity = minAir,
+                    maxAirHumidity = maxAir,
+                    minSoilHumidity = minSoil,
+                    maxSoilHumidity = maxSoil,
                     targetWateringInterval = result.masterPlant.waterInterval,
                     requiredLightLevel = result.masterPlant.light
                 )
@@ -55,35 +71,31 @@ class PlantRepository(
                 plantDao.insert(localPlant)
                 result
             } else {
-                Log.e("REPO", "Error: ${response.code()}")
+                Log.e(TAG, "Error: ${response.code()}")
                 null
             }
         } catch (e: Exception) {
-            Log.e("REPO", "Failure: ${e.message}")
+            Log.e(TAG, "Failure: ${e.message}")
             null
         }
     }
 
-    // --- 3. REMOTE SYNC (PULL) ---
-
     suspend fun syncPlantsFromRemote() {
         try {
             coroutineScope {
-                // 1. Start both calls simultaneously
                 val userPlantsDeferred = async { plantApiService.getRemoteUserPlants() }
                 val masterPlantsDeferred = async { plantApiService.getRemoteMasterPlants() }
 
-                // 2. Wait for both to finish
                 val remoteUserPlants = userPlantsDeferred.await()
                 val remoteMasterData = masterPlantsDeferred.await()
-
-                // 2. Create a Map for quick lookup: Key is Species Name, Value is MasterPlant object
                 val masterMap = remoteMasterData.associateBy { it.speciesName }
 
-                // 3. Map UserPlants to local Entities, enriching them with Master data
                 val localPlants = remoteUserPlants.map { userRemote ->
-                    val masterPlant =
-                        masterMap[userRemote.speciesName] // Find matching botanical info
+                    val masterPlant = masterMap[userRemote.speciesName]
+
+                    // Use the new parser here too
+                    val (minAir, maxAir) = parseHumidity(masterPlant?.airH)
+                    val (minSoil, maxSoil) = parseHumidity(masterPlant?.soilH)
 
                     Plant(
                         localId = 0,
@@ -95,8 +107,6 @@ class PlantRepository(
                         healthStatus = userRemote.healthStatus ?: "Healthy",
                         connectedSensorId = userRemote.connectedSensorId,
                         notificationsEnabled = userRemote.notificationsEnabled,
-
-                        // Enrichment from Master Data (if it exists)
                         botanicalFact = masterPlant?.fact,
                         toxicity = masterPlant?.tox,
                         growthHabit = masterPlant?.growth,
@@ -108,14 +118,15 @@ class PlantRepository(
                         maxHeight = masterPlant?.maxHeight,
                         minTemp = masterPlant?.minT,
                         maxTemp = masterPlant?.maxT,
-
-                        // Requirements
+                        minAirHumidity = minAir,
+                        maxAirHumidity = maxAir,
+                        minSoilHumidity = minSoil,
+                        maxSoilHumidity = maxSoil,
                         targetWateringInterval = masterPlant?.waterInterval ?: 7,
                         requiredLightLevel = masterPlant?.light ?: "Unknown"
                     )
                 }
 
-                // 4. Update Database
                 plantDao.deleteAll()
                 plantDao.insertAll(localPlants)
             }
@@ -124,23 +135,13 @@ class PlantRepository(
         }
     }
 
-    // --- 4. DELETE ---
-
+    // ... delete and clearLocalData as before ...
     suspend fun deletePlant(plant: Plant) {
         plant.firebaseId?.let { id ->
-            try {
-                plantApiService.deletePlant(id)
-            } catch (e: Exception) {
-                Log.e(TAG, "Remote delete failed")
-            }
+            try { plantApiService.deletePlant(id) } catch (e: Exception) { Log.e(TAG, "Remote delete failed") }
         }
         plantDao.delete(plant)
     }
 
-    suspend fun clearLocalData()
-    {
-        //cleans the ROOM db
-        plantDao.deleteAll()
-
-    }
+    suspend fun clearLocalData() { plantDao.deleteAll() }
 }

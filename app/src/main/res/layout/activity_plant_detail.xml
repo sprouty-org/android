@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="#FAFAFA">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBar"
@@ -24,39 +24,56 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/ic_flower_rose"
                 app:layout_collapseMode="parallax" />
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="160dp"
                 android:layout_gravity="bottom"
                 android:background="@drawable/gradient_black_transparent" />
 
             <androidx.appcompat.widget.Toolbar
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
+                android:layout_marginTop="24dp"
                 app:layout_collapseMode="pin">
                 <ImageButton
                     android:id="@+id/btnBack"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/circle_background_dark"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Back"
+                    android:scaleType="centerInside"
                     android:src="@drawable/ic_back"
-                    app:tint="@color/white" />
+                    app:tint="@null" />
             </androidx.appcompat.widget.Toolbar>
 
-            <TextView
-                android:id="@+id/tvDetailTitle"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|start"
                 android:layout_marginStart="20dp"
-                android:layout_marginBottom="24dp"
-                android:text="Monstera"
-                android:textColor="@color/white"
-                android:textSize="32sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="32dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDetailTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Custom Name"
+                    android:textColor="@color/white"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDetailSpecies"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Species Name"
+                    android:textColor="#CCCCCC"
+                    android:textSize="18sp"
+                    android:textStyle="italic" />
+            </LinearLayout>
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
@@ -64,7 +81,7 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="-20dp"
+        android:layout_marginTop="-25dp"
         android:background="@drawable/rounded_top_corners"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
@@ -74,31 +91,36 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipLight"
-                    style="@style/Widget.Material3.Chip.Assist"
-                    android:layout_width="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:chipIcon="@android:drawable/ic_menu_compass"
-                    app:chipIconTint="@color/sprouty_green" />
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipWater"
-                    style="@style/Widget.Material3.Chip.Assist"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    app:chipIcon="@android:drawable/ic_menu_day"
-                    app:chipIconTint="@color/sprouty_green" />
-            </LinearLayout>
+                    android:padding="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Plant Care Notifications"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchNotifications"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="#F1F8E9"
                 app:cardCornerRadius="16dp"
                 app:strokeColor="#C5E1A5"
@@ -118,29 +140,26 @@
                         android:id="@+id/tvDetailFact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="4dp"
-                        android:text="Checking for facts..."
+                        android:layout_marginTop="4dp"
                         android:textColor="#558B2F" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Botanical Details"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardBotanical" />
 
-            <TextView
-                android:id="@+id/tvDetailAttributes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:lineSpacingMultiplier="1.4"
-                android:textColor="#444444"
-                android:textSize="16sp" />
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardTemp" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardHumidity" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardSunlight" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardSoil" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardToxicity" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardFruit" />
+
+            <View android:layout_width="match_parent" android:layout_height="40dp"/>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
