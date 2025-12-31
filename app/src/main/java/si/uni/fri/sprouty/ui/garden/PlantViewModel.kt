@@ -41,6 +41,19 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
 
     // --- 2. Actions ---
 
+    // Inside PlantViewModel class
+    fun connectSensorToPlant(plantId: String?, sensorId: String) {
+        if (plantId == null) return
+        viewModelScope.launch {
+            _isIdentifying.value = true // Reuse loading state
+            val success = repository.connectSensor(plantId, sensorId)
+            _isIdentifying.value = false
+            if (success) {
+                // Optional: Use a SharedFlow to signal success toast
+            }
+        }
+    }
+
     /**
      * Triggered after the user takes a photo.
      * Handles image conversion and calling the repository.

@@ -11,20 +11,20 @@ import com.google.gson.annotations.SerializedName
  */
 @Entity(tableName = "plants")
 data class Plant(
-    @PrimaryKey(autoGenerate = true)
-    val localId: Long = 0,
+    @PrimaryKey(autoGenerate = true) val localId: Long = 0,
     val firebaseId: String? = null,
     val speciesName: String,
-
-    // --- User Customization ---
     val customName: String? = null,
     val imageUrl: String? = null,
-
-    // --- Health & Status ---
     val healthStatus: String,
     val lastWatered: Long,
 
-    // --- Botanical "Master" Data (Stored locally for detail view) ---
+    // --- Sensor Readings (Add these) ---
+    val currentHumiditySoil: Double = 0.0,
+    val currentTemperature: Double? = null,
+    val currentHumidityAir: Double? = null,
+
+    // ... (rest of your existing fields)
     val botanicalFact: String? = null,
     val toxicity: String? = null,
     val growthHabit: String? = null,
@@ -34,25 +34,16 @@ data class Plant(
     val fruitInfo: String? = null,
     val uses: List<String>? = null,
     val maxHeight: Int? = null,
-
-    // --- environment info ---
     val minTemp: Int? = null,
     val maxTemp: Int? = null,
     val minAirHumidity: Int? = null,
     val maxAirHumidity: Int? = null,
     val minSoilHumidity: Int? = null,
     val maxSoilHumidity: Int? = null,
-
-
-    // --- Requirements ---
     val targetWateringInterval: Int,
     val requiredLightLevel: String,
     val notificationsEnabled: Boolean = true,
-
-    // --- Sensor & Notifications ---
-    val connectedSensorId: String? = null
-
-
+    val connectedSensorId: String? = null,
 )
 
 // --- 2. PLANT DAO (Data Access Object) ---
@@ -74,6 +65,11 @@ data class UserPlant(
     val speciesId: String? = null,
     val speciesName: String? = null,
     val customName: String? = null,
+
+    // --- Sensor Readings (Add these) ---
+    val currentHumiditySoil: Double = 0.0,
+    val currentTemperature: Double? = null,
+    val currentHumidityAir: Double? = null,
 
     val imageUrl: String? = null,
 

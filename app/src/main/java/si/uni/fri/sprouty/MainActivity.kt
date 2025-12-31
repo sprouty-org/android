@@ -5,8 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputFilter
+import android.text.InputType
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
@@ -28,6 +32,7 @@ import si.uni.fri.sprouty.ui.garden.PlantViewModelFactory
 import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
+import si.uni.fri.sprouty.data.model.Plant
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,36 +74,14 @@ class MainActivity : AppCompatActivity() {
         fabAddPlant = findViewById(R.id.fabAddPlant)
         loadingOverlay = findViewById(R.id.loadingOverlay)
 
-        // Set to LinearLayoutManager for full-width list items
         recyclerPlants.layoutManager = LinearLayoutManager(this)
 
-        plantAdapter = PlantAdapter { plant ->
-            val intent = Intent(this, PlantDetailActivity::class.java).apply {
-                putExtra("FIREBASE_ID", plant.firebaseId)
-                putExtra("SPECIES_NAME", plant.speciesName)
-                putExtra("CUSTOM_NAME", plant.customName)
-                putExtra("PLANT_IMAGE_URL", plant.imageUrl)
-                putExtra("WATER_INTERVAL", plant.targetWateringInterval)
-                putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
-                putExtra("PLANT_HEIGHT", plant.maxHeight)
+        // Initialize Adapter with two callbacks
+        plantAdapter = PlantAdapter(
+            onItemClick = { plant -> navigateToDetail(plant) },
+            onConnectSensorClick = { plant -> showConnectSensorDialog(plant) }
+        )
 
-                // Pass the new cached master data
-                putExtra("PLANT_FACT", plant.botanicalFact)
-                putExtra("PLANT_TOX", plant.toxicity)
-                putExtra("PLANT_GROWTH", plant.growthHabit)
-                putExtra("PLANT_SOIL", plant.soilType)
-                putExtra("PLANT_TYPE", plant.botanicalType)
-                putExtra("PLANT_FRUIT", plant.fruitInfo)
-                putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
-
-                putExtra("MIN_TEMP", plant.minTemp)
-                putExtra("MAX_TEMP", plant.maxTemp)
-                putExtra("AIR_HUMIDITY", plant.minAirHumidity.toString() + " - " + plant.maxAirHumidity.toString() + "%")
-                putExtra("SOIL_HUMIDITY", plant.minSoilHumidity.toString() + " - " + plant.maxSoilHumidity.toString() + "%")
-                putExtra("PLANT_LIFE", plant.lifecycle)
-            }
-            startActivity(intent)
-        }
         recyclerPlants.adapter = plantAdapter
 
         fabAddPlant.setOnClickListener { showImageSourceDialog() }
@@ -108,15 +91,67 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showConnectSensorDialog(plant: Plant) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Connect Sensor")
+        builder.setMessage("Enter the MAC Address of your sensor (e.g., AABBCCDDEEFF)")
+
+        // Programmatically create EditText with margins
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_TEXT
+        input.filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(12))
+        input.hint = "Sensor ID"
+
+        val container = FrameLayout(this)
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        params.setMargins(60, 20, 60, 20)
+        input.layoutParams = params
+        container.addView(input)
+        builder.setView(container)
+
+        builder.setPositiveButton("Connect") { _, _ ->
+            val sensorId = input.text.toString().trim()
+            if (sensorId.isNotEmpty()) {
+                viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
+                Toast.makeText(this, "Connecting to $sensorId...", Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        builder.show()
+    }
+
+    private fun navigateToDetail(plant: Plant) {
+        val intent = Intent(this, PlantDetailActivity::class.java).apply {
+            putExtra("FIREBASE_ID", plant.firebaseId)
+            putExtra("SPECIES_NAME", plant.speciesName)
+            putExtra("CUSTOM_NAME", plant.customName)
+            putExtra("PLANT_IMAGE_URL", plant.imageUrl)
+            putExtra("WATER_INTERVAL", plant.targetWateringInterval)
+            putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
+            putExtra("PLANT_HEIGHT", plant.maxHeight)
+            putExtra("PLANT_FACT", plant.botanicalFact)
+            putExtra("PLANT_TOX", plant.toxicity)
+            putExtra("PLANT_GROWTH", plant.growthHabit)
+            putExtra("PLANT_SOIL", plant.soilType)
+            putExtra("PLANT_TYPE", plant.botanicalType)
+            putExtra("PLANT_FRUIT", plant.fruitInfo)
+            putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
+            putExtra("MIN_TEMP", plant.minTemp)
+            putExtra("MAX_TEMP", plant.maxTemp)
+            putExtra("AIR_HUMIDITY", "${plant.minAirHumidity} - ${plant.maxAirHumidity}%")
+            putExtra("SOIL_HUMIDITY", "${plant.minSoilHumidity} - ${plant.maxSoilHumidity}%")
+            putExtra("PLANT_LIFE", plant.lifecycle)
+        }
+        startActivity(intent)
+    }
+
     private fun observeViewModel() {
-        // Observe Plants from Local DB
         lifecycleScope.launch {
             viewModel.plantList.collect { plants ->
                 plantAdapter.submitList(plants)
             }
         }
 
-        // Observe Loading State
         lifecycleScope.launch {
             viewModel.isIdentifying.collect { isLoading ->
                 loadingOverlay.visibility = if (isLoading) View.VISIBLE else View.GONE
@@ -124,7 +159,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Observe API Success
         lifecycleScope.launch {
             viewModel.identificationResult.collect { result ->
                 result?.let {

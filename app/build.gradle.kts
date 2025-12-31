@@ -78,6 +78,8 @@ dependencies {
     // 2. Firebase Bill of Materials (BOM) - Keeps all versions aligned
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
 
     // play-services-auth is often needed even with the BOM for Google sign-in methods
     // NOTE: If play.services.auth is an alias in libs, use that instead.

@@ -16,10 +16,6 @@ class PlantRepository(
 ) {
     private val TAG = "PlantRepository"
 
-    // --- HELPER FOR FLEXIBLE STRING PARSING ---
-    /**
-     * Splits "40, 60" or "40,60" and returns a Pair(min, max).
-     */
     private fun parseHumidity(input: String?): Pair<Int?, Int?> {
         if (input.isNullOrBlank()) return Pair(null, null)
         val parts = input.split(",").map { it.trim() }
@@ -36,7 +32,6 @@ class PlantRepository(
             if (response.isSuccessful && response.body() != null) {
                 val result = response.body()!!
 
-                // Use the new parser here
                 val (minAir, maxAir) = parseHumidity(result.masterPlant.airH)
                 val (minSoil, maxSoil) = parseHumidity(result.masterPlant.soilH)
 
@@ -47,6 +42,12 @@ class PlantRepository(
                     lastWatered = result.userPlant.lastWatered,
                     healthStatus = result.userPlant.healthStatus ?: "Healthy",
                     connectedSensorId = result.userPlant.connectedSensorId,
+
+                    // --- Added New Sensor Fields ---
+                    currentHumiditySoil = result.userPlant.currentHumiditySoil,
+                    currentTemperature = result.userPlant.currentTemperature,
+                    currentHumidityAir = result.userPlant.currentHumidityAir,
+
                     notificationsEnabled = result.userPlant.notificationsEnabled,
                     imageUrl = imageUri,
                     botanicalFact = result.masterPlant.fact,
@@ -70,10 +71,7 @@ class PlantRepository(
 
                 plantDao.insert(localPlant)
                 result
-            } else {
-                Log.e(TAG, "Error: ${response.code()}")
-                null
-            }
+            } else null
         } catch (e: Exception) {
             Log.e(TAG, "Failure: ${e.message}")
             null
@@ -92,8 +90,6 @@ class PlantRepository(
 
                 val localPlants = remoteUserPlants.map { userRemote ->
                     val masterPlant = masterMap[userRemote.speciesName]
-
-                    // Use the new parser here too
                     val (minAir, maxAir) = parseHumidity(masterPlant?.airH)
                     val (minSoil, maxSoil) = parseHumidity(masterPlant?.soilH)
 
@@ -106,6 +102,12 @@ class PlantRepository(
                         lastWatered = userRemote.lastWatered,
                         healthStatus = userRemote.healthStatus ?: "Healthy",
                         connectedSensorId = userRemote.connectedSensorId,
+
+                        // --- Added New Sensor Fields ---
+                        currentHumiditySoil = userRemote.currentHumiditySoil,
+                        currentTemperature = userRemote.currentTemperature,
+                        currentHumidityAir = userRemote.currentHumidityAir,
+
                         notificationsEnabled = userRemote.notificationsEnabled,
                         botanicalFact = masterPlant?.fact,
                         toxicity = masterPlant?.tox,
@@ -129,16 +131,29 @@ class PlantRepository(
 
                 plantDao.deleteAll()
                 plantDao.insertAll(localPlants)
+                Log.d(TAG, "Sync successful: ${localPlants.size} plants updated.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to sync: ${e.message}")
         }
     }
 
-    // ... delete and clearLocalData as before ...
+    suspend fun connectSensor(plantId: String, sensorId: String): Boolean {
+        return try {
+            val response = plantApiService.connectSensor(plantId, sensorId)
+            if (response.isSuccessful) {
+                syncPlantsFromRemote()
+                true
+            } else false
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to connect sensor: ${e.message}")
+            false
+        }
+    }
+
     suspend fun deletePlant(plant: Plant) {
         plant.firebaseId?.let { id ->
-            try { plantApiService.deletePlant(id) } catch (e: Exception) { Log.e(TAG, "Remote delete failed") }
+            try { plantApiService.deletePlant(id) } catch (_: Exception) { Log.e(TAG, "Remote delete failed") }
         }
         plantDao.delete(plant)
     }

@@ -31,4 +31,11 @@ interface PlantApiService {
         @Path("id") firebaseId: String,
         @Body userPlant: UserPlant
     ): Response<Unit>
+
+    // --- New: Connect Sensor Endpoint ---
+    @POST("plants/connect-sensor")
+    suspend fun connectSensor(
+        @Query("plantId") plantId: String,
+        @Query("sensorId") sensorId: String
+    ): Response<Unit>
 }

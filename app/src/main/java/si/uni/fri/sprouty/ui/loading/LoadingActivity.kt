@@ -1,13 +1,12 @@
 package si.uni.fri.sprouty.ui.loading
 
-// Use the new package locations/names you provided
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import si.uni.fri.sprouty.MainActivity
 import si.uni.fri.sprouty.R
@@ -18,84 +17,62 @@ import si.uni.fri.sprouty.util.auth.JwtUtils
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
-
 class LoadingActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferencesUtil: SharedPreferencesUtil
     private lateinit var jwtUtils: JwtUtils
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
-        // This handles the transition from the system splash screen
-        val splashScreen: SplashScreen = installSplashScreen()
-
+        // 1. Install Splash Screen before super.onCreate
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_loading)
 
+        // Keep splash on screen until we decide where to navigate
         var isReady = false
         splashScreen.setKeepOnScreenCondition { !isReady }
 
+        // 2. Setup Dependencies
         sharedPreferencesUtil = SharedPreferencesUtil(applicationContext)
-
-        val retrofit = NetworkModule.provideRetrofit(applicationContext)
-
-        val authApiService = retrofit.create(AuthApiService::class.java)
-
+        val authApiService = NetworkModule.provideRetrofit(applicationContext).create(AuthApiService::class.java)
         jwtUtils = JwtUtils(authApiService, sharedPreferencesUtil)
 
-        // Delay for splash screen effect, then check auth status
+        // 3. Authenticate and Navigate
         lifecycleScope.launch {
+            // Optional: minimal delay to show branding if needed
+            delay(500)
             handleStartupAuth()
-            isReady = true // This will dismiss the splash and show the target activity
+            isReady = true
         }
     }
 
-    /**
-     * Handles the initial authentication check.
-     */
     private suspend fun handleStartupAuth() {
-        // 3. Call methods on the INSTANCES, not the class name, and without Context
         val savedJwt = sharedPreferencesUtil.getAuthToken()
 
-        // 1. If JWT missing → go to register
+        // Case A: New user or logged out
         if (savedJwt == null) {
-            Log.d("LoadingActivity", "JWT missing, navigating to Register.")
-            goToRegister()
+            Log.d("Loading", "No token found, going to Register.")
+            startActivity(Intent(this, RegisterActivity::class.java))
+            finish()
             return
         }
 
-        // 2. If JWT still valid (not expiring soon) → go to main
+        // Case B: Token exists and is still valid
         if (!jwtUtils.isExpired(savedJwt)) {
-            Log.d("LoadingActivity", "JWT still valid, navigating to Main.")
-            goToMain()
+            Log.d("Loading", "Token valid, going to Main.")
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
             return
         }
 
-        // 3. JWT expired or expiring soon → try automatic refresh
-        if(jwtUtils.refreshJwtToken()){ // No Context needed here
-            Log.d("LoadingActivity", "JWT refreshed successfully, navigating to Main.")
-            goToMain()
-            return
-        }else{
-            // 4. Refresh failed → must log in
-            Log.d("LoadingActivity", "JWT refresh failed, navigating to Login.")
-            goToLogin()
-            return
+        // Case C: Token expired, try refreshing it automatically
+        Log.d("Loading", "Token expired, attempting refresh.")
+        if (jwtUtils.refreshJwtToken()) {
+            startActivity(Intent(this, MainActivity::class.java))
+        } else {
+            // Case D: Refresh failed (e.g., refresh token expired), go to Login
+            startActivity(Intent(this, LoginActivity::class.java))
         }
-    }
-
-    private fun goToMain() {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
-    }
-
-    private fun goToLogin() {
-        startActivity(Intent(this, LoginActivity::class.java))
-        finish()
-    }
-
-    private fun goToRegister() {
-        startActivity(Intent(this, RegisterActivity::class.java))
         finish()
     }
 }

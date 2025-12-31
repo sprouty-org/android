@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,14 +27,20 @@ class FirebaseUtils(
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val TAG = "FirebaseUtils"
 
+    /**
+     * Helper to fetch the current FCM Device Token.
+     */
+    private suspend fun getFcmToken(): String? {
+        return try {
+            FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get FCM token: ${e.message}")
+            null
+        }
+    }
+
     // --- GOOGLE FLOWS ---
 
-    /**
-     * Handles Google Registration:
-     * 1. Signs into Firebase locally with the Google Credential.
-     * 2. Retrieves a Firebase ID Token (Audience: sprouty-plantapp).
-     * 3. Sends that Firebase Token to the backend.
-     */
     fun exchangeGoogleRegisterToken(
         context: Context,
         scope: CoroutineScope,
@@ -43,25 +50,23 @@ class FirebaseUtils(
     ) {
         scope.launch {
             try {
-                // 1. Convert Google Token to Firebase Session locally
+                val fcmToken = getFcmToken()
                 val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
                 val authResult = firebaseAuth.signInWithCredential(credential).await()
                 val firebaseUser = authResult.user
 
                 if (firebaseUser != null) {
-                    // 2. Get the Firebase ID Token (This fixes the 'aud' error)
                     val firebaseIdToken = firebaseUser.getIdToken(true).await()?.token
 
                     if (firebaseIdToken != null) {
-                        // 3. Send the FIREBASE token to backend
-                        val authResponse = exchangeToken("users/register/google", firebaseIdToken)
+                        val authResponse = exchangeToken("users/register/google", firebaseIdToken, fcmToken)
 
                         if (authResponse != null) {
                             sharedPreferencesUtil.saveUser(authResponse.token, name)
                             withContext(Dispatchers.Main) { onSuccess() }
                         } else {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "Registration failed (Backend rejected token).", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Registration failed: Backend error", Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -69,16 +74,12 @@ class FirebaseUtils(
             } catch (e: Exception) {
                 Log.e(TAG, "Google Registration error: ${e.message}")
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Google Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Google Sign-Up failed", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    /**
-     * Handles Google Login:
-     * Exact same logic as registration, ensuring a Firebase ID Token is sent to the backend.
-     */
     fun exchangeGoogleLoginToken(
         context: Context,
         scope: CoroutineScope,
@@ -88,16 +89,13 @@ class FirebaseUtils(
     ) {
         scope.launch {
             try {
-                // 1. Local Firebase Sign-in
+                val fcmToken = getFcmToken()
                 val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
                 val authResult = firebaseAuth.signInWithCredential(credential).await()
-
-                // 2. Extract Firebase ID Token
                 val firebaseIdToken = authResult.user?.getIdToken(true)?.await()?.token
 
                 if (firebaseIdToken != null) {
-                    // 3. Send to backend
-                    val authResponse = exchangeToken("users/login/google", firebaseIdToken)
+                    val authResponse = exchangeToken("users/login/google", firebaseIdToken, fcmToken)
 
                     if (authResponse != null) {
                         sharedPreferencesUtil.saveUser(authResponse.token, name)
@@ -128,15 +126,14 @@ class FirebaseUtils(
     ) {
         coroutineScope.launch {
             try {
-                // 1. Authenticate with Firebase first
+                val fcmToken = getFcmToken()
                 val authResult = firebaseAuth.signInWithEmailAndPassword(email, pass).await()
                 val firebaseUser = authResult.user
 
                 if (firebaseUser != null) {
-                    // 2. Retrieve Firebase ID Token
                     val firebaseIdToken = firebaseUser.getIdToken(true).await()?.token
                     if (firebaseIdToken != null) {
-                        val authResponse = exchangeToken("users/login/email", firebaseIdToken)
+                        val authResponse = exchangeToken("users/login/email", firebaseIdToken, fcmToken)
                         if (authResponse != null) {
                             sharedPreferencesUtil.saveUser(authResponse.token, firebaseUser.displayName ?: email)
                             withContext(Dispatchers.Main) { onSuccess() }
@@ -162,10 +159,11 @@ class FirebaseUtils(
     ) {
         scope.launch {
             try {
-                // 1. Create in Backend first
-                val response = authApiService.register(RegisterRequest(email, pass, name))
+                val fcmToken = getFcmToken()
+                // Passing fcmToken to the standard register request
+                val response = authApiService.register(RegisterRequest(email, pass, name, fcmToken))
+
                 if (response.isSuccessful && response.body() != null) {
-                    // 2. Sign in locally to Firebase to sync the session
                     firebaseAuth.signInWithEmailAndPassword(email, pass).await()
                     sharedPreferencesUtil.saveUser(response.body()!!.token, name)
                     withContext(Dispatchers.Main) { onSuccess() }
@@ -182,10 +180,14 @@ class FirebaseUtils(
 
     // --- HELPERS ---
 
-    private suspend fun exchangeToken(endpointPath: String, token: String): AuthResponse? {
+    /**
+     * Generic helper to exchange a Firebase ID Token + FCM Token for a backend JWT.
+     */
+    private suspend fun exchangeToken(endpointPath: String, idToken: String, fcmToken: String?): AuthResponse? {
         return withContext(Dispatchers.IO) {
             try {
-                val request = GoogleLoginRequest(token)
+                // We use GoogleLoginRequest DTO which now includes fcmToken
+                val request = GoogleLoginRequest(idToken, fcmToken)
                 val response = authApiService.exchangeToken(endpointPath, request)
                 if (response.isSuccessful) response.body() else null
             } catch (e: Exception) {
