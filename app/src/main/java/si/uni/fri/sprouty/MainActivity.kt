@@ -1,6 +1,8 @@
 package si.uni.fri.sprouty
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -17,6 +19,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,6 +37,7 @@ import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.data.model.Plant
+import si.uni.fri.sprouty.data.network.NotificationHelper
 
 class MainActivity : AppCompatActivity() {
 
@@ -58,7 +63,23 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         observeViewModel()
 
+        checkNotificationPermission()
+
         viewModel.refreshData()
+        //NotificationHelper.triggerLocalNotification(this, "Local Test", "This didn't use the backend!")
+    }
+
+    private fun checkNotificationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED) {
+
+            // Request the permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                101
+            )
+        }
     }
 
     private fun setupDependencies() {
@@ -76,10 +97,13 @@ class MainActivity : AppCompatActivity() {
 
         recyclerPlants.layoutManager = LinearLayoutManager(this)
 
-        // Initialize Adapter with two callbacks
+        // Initialize Adapter with all 5 callbacks
         plantAdapter = PlantAdapter(
             onItemClick = { plant -> navigateToDetail(plant) },
-            onConnectSensorClick = { plant -> showConnectSensorDialog(plant) }
+            onConnectSensorClick = { plant -> showConnectSensorDialog(plant) },
+            onRenameClick = { plant -> showRenameDialog(plant) },
+            onDeleteClick = { plant -> showDeleteConfirmation(plant) },
+            onDisconnectSensorClick = { plant -> showDisconnectConfirmation(plant) }
         )
 
         recyclerPlants.adapter = plantAdapter
@@ -91,16 +115,66 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // --- NEW DIALOG FUNCTIONALITIES ---
+
+    private fun showRenameDialog(plant: Plant) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Rename Plant")
+
+        val input = EditText(this)
+        input.setText(plant.customName ?: plant.speciesName)
+        input.setSelectAllOnFocus(true)
+
+        val container = FrameLayout(this)
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        params.setMargins(60, 20, 60, 20)
+        input.layoutParams = params
+        container.addView(input)
+        builder.setView(container)
+
+        builder.setPositiveButton("Save") { _, _ ->
+            val newName = input.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                viewModel.renamePlant(plant.firebaseId, newName)
+            }
+        }
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
+    }
+
+    private fun showDisconnectConfirmation(plant: Plant) {
+        AlertDialog.Builder(this)
+            .setTitle("Disconnect Sensor")
+            .setMessage("Are you sure you want to remove the sensor from ${plant.customName ?: plant.speciesName}?")
+            .setPositiveButton("Disconnect") { _, _ ->
+                viewModel.disconnectSensorFromPlant(plant.firebaseId)
+                Toast.makeText(this, "Sensor disconnected", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showDeleteConfirmation(plant: Plant) {
+        AlertDialog.Builder(this)
+            .setTitle("Remove Plant")
+            .setMessage("Are you sure you want to delete ${plant.customName ?: plant.speciesName} from your garden?")
+            .setPositiveButton("Delete") { _, _ ->
+                viewModel.deletePlant(plant.firebaseId)
+            }
+            .setNegativeButton("Cancel", null)
+            .setIcon(android.R.drawable.ic_menu_delete)
+            .show()
+    }
+
     private fun showConnectSensorDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Connect Sensor")
-        builder.setMessage("Enter the MAC Address of your sensor (e.g., AABBCCDDEEFF)")
+        builder.setMessage("Enter the 12-character Sensor ID")
 
-        // Programmatically create EditText with margins
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(12))
-        input.hint = "Sensor ID"
+        input.hint = "AABBCCDDEEFF"
 
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -113,34 +187,45 @@ class MainActivity : AppCompatActivity() {
             val sensorId = input.text.toString().trim()
             if (sensorId.isNotEmpty()) {
                 viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
-                Toast.makeText(this, "Connecting to $sensorId...", Toast.LENGTH_SHORT).show()
             }
         }
-        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        builder.setNegativeButton("Cancel", null)
         builder.show()
     }
 
+    // --- NAVIGATION AND VIEWMODEL OBSERVATION ---
+
     private fun navigateToDetail(plant: Plant) {
         val intent = Intent(this, PlantDetailActivity::class.java).apply {
+            // Basic Info
             putExtra("FIREBASE_ID", plant.firebaseId)
+            putExtra("PLANT_IMAGE_URL", plant.imageUrl)
             putExtra("SPECIES_NAME", plant.speciesName)
             putExtra("CUSTOM_NAME", plant.customName)
-            putExtra("PLANT_IMAGE_URL", plant.imageUrl)
-            putExtra("WATER_INTERVAL", plant.targetWateringInterval)
-            putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
-            putExtra("PLANT_HEIGHT", plant.maxHeight)
             putExtra("PLANT_FACT", plant.botanicalFact)
-            putExtra("PLANT_TOX", plant.toxicity)
-            putExtra("PLANT_GROWTH", plant.growthHabit)
-            putExtra("PLANT_SOIL", plant.soilType)
+
+            // Botanical Info
             putExtra("PLANT_TYPE", plant.botanicalType)
-            putExtra("PLANT_FRUIT", plant.fruitInfo)
-            putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
+            putExtra("PLANT_LIFE", plant.lifecycle)
+            putExtra("PLANT_GROWTH", plant.growthHabit)
+            putExtra("PLANT_HEIGHT", plant.maxHeight)
+            putExtra("CARE_DIFFICULTY", plant.careDifficulty)
+
+            // Environment & Care
             putExtra("MIN_TEMP", plant.minTemp)
             putExtra("MAX_TEMP", plant.maxTemp)
-            putExtra("AIR_HUMIDITY", "${plant.minAirHumidity} - ${plant.maxAirHumidity}%")
-            putExtra("SOIL_HUMIDITY", "${plant.minSoilHumidity} - ${plant.maxSoilHumidity}%")
-            putExtra("PLANT_LIFE", plant.lifecycle)
+            putExtra("MIN_AIR_HUMIDITY", plant.minAirHumidity)
+            putExtra("MAX_AIR_HUMIDITY", plant.maxAirHumidity)
+            putExtra("MIN_SOIL_HUMIDITY", plant.minSoilHumidity)
+            putExtra("MAX_SOIL_HUMIDITY", plant.maxSoilHumidity)
+            putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
+            putExtra("PLANT_SOIL", plant.soilType)
+
+            // Extras
+            putExtra("PLANT_TOX", plant.toxicity)
+            putExtra("PLANT_FRUIT", plant.fruitInfo)
+            putExtra("PLANT_USES", ArrayList(plant.uses))
+            putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
         }
         startActivity(intent)
     }

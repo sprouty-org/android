@@ -5,14 +5,13 @@
             app:key="logout_button"
             app:title="Log Out"
             app:summary="Clear session and return to login screen"
-            app:icon="@drawable/ic_logout" /> </PreferenceCategory>
+            app:icon="@drawable/ic_logout" />
 
-    <PreferenceCategory app:title="App Preferences">
-        <SwitchPreferenceCompat
-            app:key="dark_mode"
-            app:title="Dark Mode"
-            app:summary="Toggle application theme"
-            app:defaultValue="false"/>
+        <Preference
+            app:key="delete_account_button"
+            app:title="Delete Account"
+            app:summary="Permanently remove your account and all garden data"
+            app:icon="@android:drawable/ic_menu_delete" />
     </PreferenceCategory>
 
 </PreferenceScreen>

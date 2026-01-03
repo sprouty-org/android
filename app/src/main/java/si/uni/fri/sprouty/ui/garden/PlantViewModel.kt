@@ -3,7 +3,6 @@ package si.uni.fri.sprouty.ui.garden
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,9 +21,8 @@ import java.io.File
 
 class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
 
-    // --- 1. State Management ---
+    // --- State Management ---
 
-    // List of plants from Room (Automatic updates)
     val plantList: StateFlow<List<Plant>> = repository.getAllPlants()
         .stateIn(
             scope = viewModelScope,
@@ -32,84 +30,104 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
             initialValue = emptyList()
         )
 
-    // UI State for the Identification process
     private val _isIdentifying = MutableStateFlow(false)
     val isIdentifying = _isIdentifying.asStateFlow()
 
     private val _identificationResult = MutableStateFlow<PlantIdentificationResponse?>(null)
     val identificationResult = _identificationResult.asStateFlow()
 
-    // --- 2. Actions ---
+    // --- Actions ---
 
-    // Inside PlantViewModel class
+    fun renamePlant(plantId: String?, newName: String) {
+        viewModelScope.launch {
+            _isIdentifying.value = true
+            try {
+                // Assuming repository has an updatePlantName method
+                repository.updatePlantName(plantId, newName)
+                // Refresh to sync local DB with remote change
+                repository.syncPlantsFromRemote()
+            } finally {
+                _isIdentifying.value = false
+            }
+        }
+    }
+
+    fun disconnectSensorFromPlant(plantId: String?) {
+        viewModelScope.launch {
+            _isIdentifying.value = true
+            try {
+                // Assuming repository has a disconnectSensor method
+                repository.disconnectSensor(plantId)
+                repository.syncPlantsFromRemote()
+            } finally {
+                _isIdentifying.value = false
+            }
+        }
+    }
+
+    // Updated to match your MainActivity's call (using String ID)
+    fun deletePlant(plantId: String?) {
+        viewModelScope.launch {
+            _isIdentifying.value = true
+            try {
+                // Find the plant in current list to pass to repository delete
+                val plantToDelete = plantList.value.find { it.firebaseId == plantId }
+                plantToDelete?.let {
+                    repository.deletePlant(it)
+                }
+            } finally {
+                _isIdentifying.value = false
+            }
+        }
+    }
+
     fun connectSensorToPlant(plantId: String?, sensorId: String) {
         if (plantId == null) return
         viewModelScope.launch {
-            _isIdentifying.value = true // Reuse loading state
+            _isIdentifying.value = true
             val success = repository.connectSensor(plantId, sensorId)
-            _isIdentifying.value = false
             if (success) {
-                // Optional: Use a SharedFlow to signal success toast
+                repository.syncPlantsFromRemote()
             }
+            _isIdentifying.value = false
         }
     }
 
-    /**
-     * Triggered after the user takes a photo.
-     * Handles image conversion and calling the repository.
-     */
     fun identifyAndAddPlant(bitmap: Bitmap, context: Context) {
         viewModelScope.launch {
             _isIdentifying.value = true
+            try {
+                val imageFile = File(context.filesDir, "plant_${System.currentTimeMillis()}.jpg")
+                context.openFileOutput(imageFile.name, Context.MODE_PRIVATE).use { fos ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+                }
+                val imagePath = imageFile.absolutePath
 
-            // 1. Save Bitmap to internal storage to get a permanent File Path
-            val imageFile = File(context.filesDir, "plant_${System.currentTimeMillis()}.jpg")
-            context.openFileOutput(imageFile.name, Context.MODE_PRIVATE).use { fos ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+                val stream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 30, stream)
+                val byteArray = stream.toByteArray()
+
+                val requestFile = byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                val body = MultipartBody.Part.createFormData("image", "photo.jpg", requestFile)
+
+                val result = repository.identifyAndSavePlant(body, imagePath)
+                _identificationResult.value = result
+            } finally {
+                _isIdentifying.value = false
             }
-            val imagePath = imageFile.absolutePath
-
-            // 2. Prepare the Multipart request
-            val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 30, stream)
-            val byteArray = stream.toByteArray()
-
-            val requestFile = byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image", "photo.jpg", requestFile)
-
-            // 3. Pass the REAL imagePath to the repository
-            val result = repository.identifyAndSavePlant(body, imagePath)
-
-            _identificationResult.value = result
-            _isIdentifying.value = false
         }
     }
 
-    /**
-     * Pull-to-refresh logic.
-     */
     fun refreshData() = viewModelScope.launch {
         repository.syncPlantsFromRemote()
     }
 
-    /**
-     * Delete plant from local and remote.
-     */
-    fun deletePlant(plant: Plant) = viewModelScope.launch {
-        repository.deletePlant(plant)
-    }
-
-    fun clearLocalCache() = viewModelScope.launch {
-        repository.clearLocalData()
-    }
-
-    // Reset result after showing the success dialog
     fun resetIdentificationResult() {
         _identificationResult.value = null
     }
 }
 
-class PlantViewModelFactory(private val repository: PlantRepository) : ViewModelProvider.Factory {
+class PlantViewModelFactory(private val repository: PlantRepository) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PlantViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

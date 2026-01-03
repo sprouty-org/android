@@ -2,6 +2,7 @@ package si.uni.fri.sprouty.data.network
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -60,38 +61,23 @@ interface AuthApiService {
     @PATCH("users/update-fcm")
     suspend fun updateFcmToken(@Body request: UpdateFcmRequest): Response<Unit>
 
-    /**
-     * Exchanges a Firebase ID Token for our internal JWT token using Google Sign-In.
-     * Endpoint: POST /users/login/google
-     */
     @POST("users/login/google")
     suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): Response<AuthResponse>
 
-    /**
-     * Registers a new user with Email/Password and creates a session.
-     * Endpoint: POST /users/register
-     */
     @POST("users/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
-    /**
-     * Generic endpoint for exchanging a Firebase token for a JWT for other login methods
-     * (e.g., standard email login after successful Firebase sign-in).
-     * The full path is specified dynamically via the @Url annotation.
-     */
     @POST
     suspend fun exchangeToken(
-        @Url url: String, // Accepts the full path, e.g., "users/login/email"
-        @Body request: GoogleLoginRequest // Note: This request is used for all Firebase token exchanges
+        @Url url: String,
+        @Body request: GoogleLoginRequest
     ): Response<AuthResponse>
 
-    // --- User Data ---
-
     /**
-     * Retrieves the current user's profile data.
-     * This call requires a valid JWT in the Authorization header (handled by AuthInterceptor).
-     * Endpoint: GET /user/data
+     * Notifies the backend to delete all user-related documents in Firestore
+     * and files in Cloud Storage before the Firebase Auth account is destroyed.
      */
-    @GET("user/data")
-    suspend fun getUserData(): Response<UserDataResponse>
+    // This matches your @DeleteMapping("/me") in the UserController
+    @DELETE("users/me")
+    suspend fun deleteAccount(): Response<Unit>
 }

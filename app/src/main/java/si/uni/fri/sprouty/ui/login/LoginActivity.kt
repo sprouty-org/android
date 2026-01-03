@@ -3,11 +3,13 @@ package si.uni.fri.sprouty.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -33,10 +35,14 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var firebaseUtils: FirebaseUtils // Dependency instance
 
+    private lateinit var loadingOverlay: ConstraintLayout
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+
+        loadingOverlay = findViewById(R.id.loadingOverlay) // Bind overlay
 
         // INITIALIZATION
         firebaseAuth = FirebaseAuth.getInstance()
@@ -87,6 +93,7 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            setLoading(true) // Start loading
             // FIX: Call instance method on firebaseUtils
             // NOTE: This assumes you ADD the loginWithEmail method to FirebaseUtils.
             firebaseUtils.loginWithEmail(
@@ -94,11 +101,13 @@ class LoginActivity : AppCompatActivity() {
                 coroutineScope = lifecycleScope,
                 email = email,
                 pass = pass,
-                onSuccess = { goToMain() }
+                onSuccess = { goToMain() },
+                onFailure = { setLoading(false) }
             )
         }
 
         btnGoogleLogin.setOnClickListener {
+            setLoading(true)
             val signInIntent = googleSignInClient.signInIntent
             startActivityForResult(signInIntent, RC_SIGN_IN)
         }
@@ -127,7 +136,8 @@ class LoginActivity : AppCompatActivity() {
                         lifecycleScope,
                         googleIdToken,
                         name,
-                        onSuccess = { goToMain() }
+                        onSuccess = { goToMain() },
+                        onFailure = { setLoading(false) }
                     )
                 }
             } catch (e: ApiException) {
@@ -135,6 +145,10 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Google Sign-In failed: ${e.statusCode}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun setLoading(isLoading: Boolean) {
+        loadingOverlay.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
     private fun goToMain() {

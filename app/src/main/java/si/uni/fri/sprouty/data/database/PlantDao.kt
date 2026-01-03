@@ -1,18 +1,12 @@
 package si.uni.fri.sprouty.data.database
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import si.uni.fri.sprouty.data.model.Plant
 
 @Dao
 interface PlantDao {
 
-    // get all plants and sort by local id
     @Query("SELECT * FROM plants ORDER BY localId ASC")
     fun getAllPlants(): Flow<List<Plant>>
 
@@ -27,6 +21,14 @@ interface PlantDao {
 
     @Update
     suspend fun update(plant: Plant)
+
+    // --- Added Specific Update Queries ---
+
+    @Query("UPDATE plants SET customName = :newName WHERE firebaseId = :plantId")
+    suspend fun updatePlantName(plantId: String?, newName: String)
+
+    @Query("UPDATE plants SET connectedSensorId = NULL WHERE firebaseId = :plantId")
+    suspend fun clearSensorId(plantId: String?)
 
     @Delete
     suspend fun delete(plant: Plant)

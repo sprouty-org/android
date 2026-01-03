@@ -8,34 +8,49 @@
     app:cardCornerRadius="12dp"
     app:cardElevation="4dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content">
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/imgPlant"
             android:layout_width="100dp"
-            android:layout_height="match_parent"
-            android:minHeight="110dp"
+            android:layout_height="0dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_missing_image"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:shapeAppearanceOverlay="@style/RoundedSquare" />
 
+        <ImageButton
+            android:id="@+id/btnOptions"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Options"
+            android:src="@drawable/ic_more_vert"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <LinearLayout
+            android:id="@+id/infoContainer"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="12dp"
+            app:layout_constraintEnd_toStartOf="@+id/btnOptions"
+            app:layout_constraintStart_toEndOf="@+id/imgPlant"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/tvPlantName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Plant Name"
-                android:textStyle="bold"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvSpecies"
@@ -44,62 +59,71 @@
                 android:text="Species"
                 android:textColor="@android:color/darker_gray" />
 
-            <FrameLayout
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/sensorFrame"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imgPlant"
+            app:layout_constraintTop_toBottomOf="@+id/infoContainer">
+
+            <Button
+                android:id="@+id/btnConnectSensor"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:backgroundTint="#4CAF50"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:padding="0dp"
+                android:text="Connect Sensor"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:visibility="visible" />
+
+            <LinearLayout
+                android:id="@+id/layoutSensorStats"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
+                android:background="#F1F8E9"
+                android:orientation="horizontal"
+                android:padding="4dp"
+                android:visibility="gone"
+                android:weightSum="3">
 
-                <Button
-                    android:id="@+id/btnConnectSensor"
-                    android:layout_width="match_parent"
-                    android:layout_height="36dp"
-                    android:text="Connect Sensor"
-                    android:textSize="12sp"
-                    android:padding="0dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:backgroundTint="#4CAF50"
-                    android:textColor="#FFFFFF"
-                    android:visibility="visible" />
-
-                <LinearLayout
-                    android:id="@+id/layoutSensorStats"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tvMoisture"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:visibility="gone"
-                    android:padding="4dp"
-                    android:background="#F1F8E9"
-                    android:weightSum="3">
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="💧 --%"
+                    android:textSize="12sp" />
 
-                    <TextView
-                        android:id="@+id/tvMoisture"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:textSize="12sp"
-                        android:text="💧 --%" />
+                <TextView
+                    android:id="@+id/tvTemp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="🌡️ --°"
+                    android:textSize="12sp" />
 
-                    <TextView
-                        android:id="@+id/tvTemp"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:textSize="12sp"
-                        android:text="🌡️ --°" />
+                <TextView
+                    android:id="@+id/tvHumidity"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="☁️ --%"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </FrameLayout>
 
-                    <TextView
-                        android:id="@+id/tvHumidity"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:textSize="12sp"
-                        android:text="☁️ --%" />
-                </LinearLayout>
-            </FrameLayout>
-        </LinearLayout>
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

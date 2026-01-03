@@ -2,6 +2,10 @@ package si.uni.fri.sprouty.data.network
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -13,6 +17,7 @@ import kotlinx.coroutines.launch
 import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.data.database.AppDatabase
 import si.uni.fri.sprouty.data.repository.PlantRepository
+import si.uni.fri.sprouty.ui.loading.LoadingActivity
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 import kotlin.random.Random
@@ -91,21 +96,56 @@ class MyFcmService : FirebaseMessagingService() {
         val channelId = "plant_alerts"
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
+        // Create Channel (Android 8.0+)
         val channel = NotificationChannel(
             channelId,
             "Plant Health Alerts",
             NotificationManager.IMPORTANCE_HIGH
-        )
+        ).apply {
+            description = "Alerts regarding plant hydration and sensor thresholds"
+        }
         notificationManager.createNotificationChannel(channel)
 
+        // Create an Intent to open the app when tapped
+        val intent = Intent(this, LoadingActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE // Required for Android 12+
+        )
+
         val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_logo) // Ensure this icon exists
+            .setSmallIcon(R.drawable.ic_logo)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent) // Open app on tap
+            .build()
+
+        notificationManager.notify(Random.nextInt(), notification)
+    }
+
+
+}
+object NotificationHelper {
+    fun triggerLocalNotification(context: Context, title: String, message: String) {
+        val channelId = "local_alerts"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Create Channel for Android 8.0+
+        val channel = NotificationChannel(channelId, "Local Alerts", NotificationManager.IMPORTANCE_HIGH)
+        notificationManager.createNotificationChannel(channel)
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_logo)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(Random.nextInt(), notification)
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 }

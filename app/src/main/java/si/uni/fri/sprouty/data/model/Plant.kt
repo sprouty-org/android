@@ -44,6 +44,8 @@ data class Plant(
     val requiredLightLevel: String,
     val notificationsEnabled: Boolean = true,
     val connectedSensorId: String? = null,
+    val careDifficulty: String,
+    val lastSeen: Long = 0,
 )
 
 // --- 2. PLANT DAO (Data Access Object) ---
@@ -74,7 +76,10 @@ data class UserPlant(
     val imageUrl: String? = null,
 
     val lastWatered: Long = 0,
+    val targetWateringInterval: Int,
     val healthStatus: String? = null,
+    val lastSeen: Long = 0,
+
 
     val connectedSensorId: String? = null,
     val notificationsEnabled: Boolean = true
@@ -96,13 +101,9 @@ data class MasterPlant(
     val light: String,
     val soilH: String,
     val airH: String,
-
-    @SerializedName("water_interval") // Match Spring field
     val waterInterval: Int,
-
     val growth: String,
     val soil: String,
-
-    @SerializedName("maxHeight") // Match Spring field
-    val maxHeight: Int
+    val maxHeight: Int,
+    val careDifficulty: String
 )

@@ -121,6 +121,48 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Watering Maintenance"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Just watered your plant? Reset the timer manually to keep your schedule accurate."
+                        android:textColor="#757575"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWaterPlant"
+                        style="@style/Widget.Material3.Button.Icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Water Plant"
+                        android:backgroundTint="@color/sprouty_green"
+                        app:icon="@drawable/ic_water_bucket"
+                        app:iconTint="@null" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="#F1F8E9"
                 app:cardCornerRadius="16dp"
                 app:strokeColor="#C5E1A5"
@@ -144,6 +186,7 @@
                         android:textColor="#558B2F" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardDifficulty" />
 
             <include layout="@layout/item_detail_card_standard" android:id="@+id/cardBotanical" />
 
@@ -158,6 +201,8 @@
             <include layout="@layout/item_detail_card_standard" android:id="@+id/cardToxicity" />
 
             <include layout="@layout/item_detail_card_standard" android:id="@+id/cardFruit" />
+
+            <include layout="@layout/item_detail_card_standard" android:id="@+id/cardUses" />
 
             <View android:layout_width="match_parent" android:layout_height="40dp"/>
 

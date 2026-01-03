@@ -15,27 +15,42 @@ interface PlantApiService {
         @Part image: MultipartBody.Part
     ): Response<PlantIdentificationResponse>
 
-    @GET("plants/master")
+    @GET("plants/masterPlants")
     suspend fun getRemoteMasterPlants(): List<MasterPlant>
 
-    @GET("plants/user")
+    @GET("plants/userPlants")
     suspend fun getRemoteUserPlants(): List<UserPlant>
 
     @DELETE("plants/{id}")
     suspend fun deletePlant(
-        @Path("id") firebaseId: String
+        @Path("id") firebaseId: String?
     ): Response<Unit>
 
-    @PUT("plants/{id}")
-    suspend fun updateUserPlant(
-        @Path("id") firebaseId: String,
-        @Body userPlant: UserPlant
-    ): Response<Unit>
-
-    // --- New: Connect Sensor Endpoint ---
     @POST("plants/connect-sensor")
     suspend fun connectSensor(
         @Query("plantId") plantId: String,
         @Query("sensorId") sensorId: String
     ): Response<Unit>
+
+    // --- Added New Endpoints ---
+
+    @PATCH("plants/{id}/rename")
+    suspend fun renamePlant(
+        @Path("id") plantId: String?,
+        @Query("newName") newName: String
+    ): Response<Unit>
+
+    @POST("plants/{id}/disconnect-sensor")
+    suspend fun disconnectSensor(
+        @Path("id") plantId: String?
+    ): Response<Unit>
+
+    @PATCH("plants/{id}/notifications")
+    suspend fun toggleNotifications(
+        @Path("id") id: String,
+        @Query("enabled") enabled: Boolean
+    ): Response<Map<String, Any>>
+
+    @POST("plants/{id}/water")
+    suspend fun waterPlant(@Path("id") id: String): Response<Unit>
 }

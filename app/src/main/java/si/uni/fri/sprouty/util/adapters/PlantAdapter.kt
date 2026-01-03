@@ -3,10 +3,7 @@ package si.uni.fri.sprouty.util.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -15,15 +12,17 @@ import coil.load
 import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.data.model.Plant
 
-// Add a second callback for the connect button
 class PlantAdapter(
     private val onItemClick: (Plant) -> Unit,
-    private val onConnectSensorClick: (Plant) -> Unit
+    private val onConnectSensorClick: (Plant) -> Unit,
+    private val onRenameClick: (Plant) -> Unit,
+    private val onDeleteClick: (Plant) -> Unit,
+    private val onDisconnectSensorClick: (Plant) -> Unit
 ) : ListAdapter<Plant, PlantAdapter.PlantViewHolder>(PlantDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlantViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_plant, parent, false)
-        return PlantViewHolder(view, onItemClick, onConnectSensorClick)
+        return PlantViewHolder(view, onItemClick, onConnectSensorClick, onRenameClick, onDeleteClick, onDisconnectSensorClick)
     }
 
     override fun onBindViewHolder(holder: PlantViewHolder, position: Int) {
@@ -33,14 +32,17 @@ class PlantAdapter(
     class PlantViewHolder(
         itemView: View,
         val onClick: (Plant) -> Unit,
-        val onConnectClick: (Plant) -> Unit
+        val onConnectClick: (Plant) -> Unit,
+        val onRename: (Plant) -> Unit,
+        val onDelete: (Plant) -> Unit,
+        val onDisconnect: (Plant) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
         private val tvName: TextView = itemView.findViewById(R.id.tvPlantName)
         private val tvSpecies: TextView = itemView.findViewById(R.id.tvSpecies)
+        private val btnOptions: ImageButton = itemView.findViewById(R.id.btnOptions) // New
 
-        // New UI Elements
         private val btnConnect: Button = itemView.findViewById(R.id.btnConnectSensor)
         private val layoutStats: LinearLayout = itemView.findViewById(R.id.layoutSensorStats)
         private val tvMoisture: TextView = itemView.findViewById(R.id.tvMoisture)
@@ -51,38 +53,46 @@ class PlantAdapter(
             tvName.text = plant.customName ?: plant.speciesName
             tvSpecies.text = plant.speciesName
 
-            // Image Loading
             imgPlant.load(plant.imageUrl) {
                 crossfade(true)
                 placeholder(R.drawable.ic_missing_image)
                 error(R.drawable.ic_missing_image)
             }
 
-            // --- Logic for Sensor Connection ---
-            val isSensorConnected = !plant.connectedSensorId.isNullOrEmpty()
+            // --- Menu Logic ---
+            btnOptions.setOnClickListener { view ->
+                val popup = PopupMenu(view.context, view)
+                popup.inflate(R.menu.plant_item_menu)
 
-            if (isSensorConnected) {
-                // HIDE Button, SHOW Stats
-                btnConnect.isVisible = false
-                layoutStats.isVisible = true
+                // Only show "Disconnect" if a sensor is actually there
+                val hasSensor = !plant.connectedSensorId.isNullOrEmpty()
+                popup.menu.findItem(R.id.action_disconnect_sensor).isVisible = hasSensor
 
-                // Populate with data from Firestore (assuming these fields exist on your Plant model)
-                // Note: Values might be 0.0 if no data has arrived yet
-                tvMoisture.text = "💧 ${plant.currentHumiditySoil.toInt()}%"
-                tvTemp.text = "🌡️ ${plant.currentTemperature ?: "--"}°C"
-                // If you don't have air humidity on the Plant object yet, hide it or use placeholder
-                tvHumidity.text = "☁️ Data OK"
-            } else {
-                // SHOW Button, HIDE Stats
-                btnConnect.isVisible = true
-                layoutStats.isVisible = false
-
-                btnConnect.setOnClickListener {
-                    onConnectClick(plant)
+                popup.setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.action_rename -> { onRename(plant); true }
+                        R.id.action_delete -> { onDelete(plant); true }
+                        R.id.action_disconnect_sensor -> { onDisconnect(plant); true }
+                        else -> false
+                    }
                 }
+                popup.show()
             }
 
-            // General item click
+            // --- Sensor Display Logic ---
+            val isSensorConnected = !plant.connectedSensorId.isNullOrEmpty()
+            if (isSensorConnected) {
+                btnConnect.isVisible = false
+                layoutStats.isVisible = true
+                tvMoisture.text = "💧 ${plant.currentHumiditySoil.toInt()}%"
+                tvTemp.text = "🌡️ ${plant.currentTemperature ?: "--"}°C"
+                tvHumidity.text = "☁️ ${plant.currentHumidityAir?.toInt()}%"
+            } else {
+                btnConnect.isVisible = true
+                layoutStats.isVisible = false
+                btnConnect.setOnClickListener { onConnectClick(plant) }
+            }
+
             itemView.setOnClickListener { onClick(plant) }
         }
     }

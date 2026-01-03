@@ -3,11 +3,13 @@ package si.uni.fri.sprouty.ui.register
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -31,9 +33,13 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var firebaseUtils: FirebaseUtils
 
+    private lateinit var loadingOverlay: ConstraintLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
+
+        loadingOverlay = findViewById(R.id.loadingOverlay)
 
         // --- DEPENDENCY SETUP ---
         val retrofit = NetworkModule.provideRetrofit(applicationContext)
@@ -76,6 +82,7 @@ class RegisterActivity : AppCompatActivity() {
                 Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            setLoading(true)
 
             firebaseUtils.registerUser(
                 context = this,
@@ -83,11 +90,13 @@ class RegisterActivity : AppCompatActivity() {
                 email = email,
                 pass = pass,
                 name = email.substringBefore("@"),
-                onSuccess = { goToMain() }
+                onSuccess = { goToMain() },
+                onFailure = { setLoading(false) }
             )
         }
 
         btnGoogleRegister.setOnClickListener {
+            setLoading(true)
             startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
         }
 
@@ -106,13 +115,22 @@ class RegisterActivity : AppCompatActivity() {
                 val token = account.idToken
                 if (token != null) {
                     firebaseUtils.exchangeGoogleRegisterToken(
-                        this, lifecycleScope, token, account.displayName ?: "User"
-                    ) { goToMain() }
+                        context = this,
+                        scope = lifecycleScope,
+                        googleIdToken = token,
+                        name = account.displayName ?: "User",
+                        onSuccess = { goToMain() },
+                        onFailure = { setLoading(false) }
+                    )
                 }
             } catch (e: ApiException) {
                 Log.e("RegisterActivity", "Google Sign-In failed: ${e.message}")
             }
         }
+    }
+
+    private fun setLoading(isLoading: Boolean) {
+        loadingOverlay.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
     private fun goToMain() {
