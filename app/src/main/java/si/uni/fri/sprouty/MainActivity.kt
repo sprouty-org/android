@@ -37,7 +37,6 @@ import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.data.model.Plant
-import si.uni.fri.sprouty.data.network.NotificationHelper
 
 class MainActivity : AppCompatActivity() {
 

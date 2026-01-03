@@ -6,9 +6,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import kotlinx.coroutines.launch
 import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.data.network.AuthApiService
 import si.uni.fri.sprouty.ui.login.LoginActivity
+import si.uni.fri.sprouty.ui.register.RegisterActivity
 import si.uni.fri.sprouty.util.auth.FirebaseUtils
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
@@ -35,7 +37,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun setupLogoutButton() {
         findPreference<Preference>("logout_button")?.setOnPreferenceClickListener {
-            firebaseUtils.logout { navigateToLogin() }
+            // 1. Tell the UI to clear immediately (Optional but helpful)
+            // plantViewModel.clearUiList()
+
+            lifecycleScope.launch {
+                // 2. Perform the heavy cleaning
+                firebaseUtils.logout(requireContext(), this) {
+                    // 3. Navigate ONLY after DB is confirmed empty
+                    navigateToLogin()
+                }
+            }
             true
         }
     }
@@ -52,14 +63,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
             .setTitle("Delete Account?")
             .setMessage("This action is permanent. All your plants and sensor data will be deleted forever.")
             .setPositiveButton("Delete Everything") { _, _ ->
-                // 1. Show Loading
                 showLoading()
+
+                // Pre-emptively clear the image cache so photos don't "ghost"
+                coil.Coil.imageLoader(requireContext()).memoryCache?.clear()
 
                 // 2. Call the deletion logic
                 firebaseUtils.deleteUser(requireContext(), viewLifecycleOwner.lifecycleScope) {
-                    // 3. Hide Loading and Navigate
                     hideLoading()
-                    navigateToLogin()
+                    navigateToRegister()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -76,6 +88,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun hideLoading() {
         progressDialog?.dismiss()
+    }
+
+    private fun navigateToRegister() {
+        val intent = Intent(requireActivity(), RegisterActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        requireActivity().finish()
     }
 
     private fun navigateToLogin() {

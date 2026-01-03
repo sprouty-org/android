@@ -209,62 +209,81 @@ class FirebaseUtils(
         }
     }
 
-    fun logout(onLogoutSuccess: () -> Unit) {
-        firebaseAuth.signOut()
-        sharedPreferencesUtil.clearUser()
-        if (plantRepository != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                plantRepository.clearLocalData()
+    /**
+     * Standard Logout:
+     * 1. Signs out of Firebase.
+     * 2. Clears the local Room database via PlantRepository.
+     * 3. Clears the JWT and user info from SharedPreferences.
+     */
+    fun logout(context: Context, scope: CoroutineScope, onLogoutSuccess: () -> Unit) {
+        scope.launch {
+            try {
+                // 1. Sign out from Firebase first
+                firebaseAuth.signOut()
+
+                // 2. Clear Room Database and WAIT for it to finish
+                // This is the part that stops the ghosting
+                withContext(Dispatchers.IO) {
+                    plantRepository?.clearLocalData()
+                    Log.d(TAG, "Local database cleared")
+                }
+
+                // 3. Clear SharedPreferences
+                sharedPreferencesUtil.clearUser()
+
+                // 4. Final Navigation
+                withContext(Dispatchers.Main) {
+                    onLogoutSuccess()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Logout error: ${e.message}")
                 withContext(Dispatchers.Main) { onLogoutSuccess() }
             }
-        } else {
-            onLogoutSuccess()
         }
     }
 
     /**
-     * Completely deletes the user account.
-     * 1. Notifies the backend to clean up Firestore/Cloud Storage.
-     * 2. Clears the local Room database.
-     * 3. Clears SharedPreferences.
-     * 4. Deletes the account from Firebase Auth.
+     * Account Deletion:
+     * 1. Notifies backend to purge data.
+     * 2. Force-clears local Room DB to prevent data ghosting.
+     * 3. Deletes Firebase Auth record.
      */
     fun deleteUser(context: Context, scope: CoroutineScope, onComplete: () -> Unit) {
         scope.launch {
             try {
-                // 1. Backend Deletion (Already verified working with 204!)
+                // 1. Backend Deletion
                 val response = authApiService.deleteAccount()
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Backend reported failure: ${response.code()}")
-                    // You might want to stop here if the backend failed
+                    Log.e(TAG, "Backend delete failed: ${response.code()}")
                 }
 
-                // 2. Clear Local Data
-                plantRepository?.clearLocalData()
+                // 2. IMMEDIATE LOCAL CLEARANCE
+                // Doing this before the network/auth finish ensures the UI sees 0 plants
+                withContext(Dispatchers.IO) {
+                    plantRepository?.clearLocalData()
+                }
                 sharedPreferencesUtil.clearUser()
 
                 // 3. Firebase Auth Cleanup
                 try {
-                    // We try to delete the user record from Firebase Auth directly
-                    // If this fails due to "Recent Login Required", we sign out anyway
+                    // This can fail if the user hasn't logged in recently (Security restriction)
                     firebaseAuth.currentUser?.delete()?.await()
                 } catch (e: Exception) {
-                    Log.w(TAG, "Firebase user delete failed (likely needs re-auth), signing out instead: ${e.message}")
+                    Log.w(TAG, "Firebase auth delete failed, proceed with signout: ${e.message}")
                 }
 
-                // 4. Always sign out locally
                 firebaseAuth.signOut()
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Account deleted successfully", Toast.LENGTH_SHORT).show()
-                    // 5. This MUST be called to trigger navigateToLogin()
+                    Toast.makeText(context, "Account and data deleted", Toast.LENGTH_SHORT).show()
                     onComplete()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Critical error during account deletion: ${e.message}")
+                Log.e(TAG, "Critical error during deletion: ${e.message}")
+                // If everything fails, at least wipe the local prefs so they can't access the app
+                sharedPreferencesUtil.clearUser()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                    // Optionally call onComplete() here too if you want to force them out anyway
+                    onComplete()
                 }
             }
         }

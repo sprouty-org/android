@@ -108,8 +108,10 @@ class LoginActivity : AppCompatActivity() {
 
         btnGoogleLogin.setOnClickListener {
             setLoading(true)
-            val signInIntent = googleSignInClient.signInIntent
-            startActivityForResult(signInIntent, RC_SIGN_IN)
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                startActivityForResult(signInIntent, RC_SIGN_IN)
+            }
         }
 
         btnSignup.setOnClickListener {

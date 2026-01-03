@@ -97,7 +97,10 @@ class RegisterActivity : AppCompatActivity() {
 
         btnGoogleRegister.setOnClickListener {
             setLoading(true)
-            startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                startActivityForResult(signInIntent, RC_SIGN_IN)
+            }
         }
 
         btnGoToLogin.setOnClickListener {
