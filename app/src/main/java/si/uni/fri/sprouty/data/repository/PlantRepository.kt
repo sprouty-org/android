@@ -1,20 +1,19 @@
 package si.uni.fri.sprouty.data.repository
 
 import android.util.Log
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import okhttp3.MultipartBody
 import si.uni.fri.sprouty.data.database.PlantDao
 import si.uni.fri.sprouty.data.model.MasterPlant
 import si.uni.fri.sprouty.data.model.Plant
-import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
 import si.uni.fri.sprouty.data.model.UserPlant
 import si.uni.fri.sprouty.data.network.PlantApiService
+import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
 
 
 class PlantRepository(
     private val plantDao: PlantDao,
-    private val plantApiService: PlantApiService
+    private val plantApiService: PlantApiService,
 ) {
     private val TAG = "PlantRepository"
 
@@ -26,9 +25,6 @@ class PlantRepository(
         return Pair(min, max)
     }
 
-    /**
-     * Corrected Mapper: Now handles lastSeen and ensures Long timestamp for lastWatered.
-     */
     private fun mapToEntity(
         userRemote: UserPlant,
         masterPlant: MasterPlant?,
@@ -42,22 +38,14 @@ class PlantRepository(
             speciesName = userRemote.speciesName ?: "Unknown",
             customName = userRemote.customName ?: userRemote.speciesName,
             imageUrl = overrideImageUrl ?: userRemote.imageUrl,
-
-            // Timestamps (Long)
             lastWatered = userRemote.lastWatered,
-            lastSeen = userRemote.lastSeen, // ADDED: Ensuring sync of last sensor heartbeat
-
+            lastSeen = userRemote.lastSeen,
             healthStatus = userRemote.healthStatus ?: "Healthy",
             connectedSensorId = userRemote.connectedSensorId,
-
-            // Sensor Readings (Double)
             currentHumiditySoil = userRemote.currentHumiditySoil,
             currentTemperature = userRemote.currentTemperature,
             currentHumidityAir = userRemote.currentHumidityAir,
-
             notificationsEnabled = userRemote.notificationsEnabled,
-
-            // Botanical / Master Info
             botanicalFact = masterPlant?.fact,
             toxicity = masterPlant?.tox,
             growthHabit = masterPlant?.growth,
@@ -73,13 +61,56 @@ class PlantRepository(
             maxAirHumidity = maxAir,
             minSoilHumidity = minSoil,
             maxSoilHumidity = maxSoil,
-            targetWateringInterval = masterPlant?.waterInterval ?: 7,
+            targetWateringInterval = userRemote.targetWateringInterval, // Use user's specific interval
             requiredLightLevel = masterPlant?.light ?: "Unknown",
             careDifficulty = masterPlant?.careDifficulty ?: "Unknown"
         )
     }
 
     fun getAllPlants(): Flow<List<Plant>> = plantDao.getAllPlants()
+
+    /**
+     * Optimized Sync: Uses the /profile endpoint to get everything in one call.
+     */
+    suspend fun syncPlantsFromRemote() {
+        try {
+            val response = plantApiService.getGardenProfile()
+            if (response.isSuccessful && response.body() != null) {
+                val profile = response.body()!!
+
+                // Group master data by species name for lookup
+                val masterMap = profile.masterPlants.associateBy { it.speciesName }
+
+                val localPlants = profile.userPlants.map { userRemote ->
+                    val masterData = masterMap[userRemote.speciesName]
+                    mapToEntity(userRemote, masterData)
+                }
+
+                plantDao.deleteAll()
+                plantDao.insertAll(localPlants)
+                Log.d(TAG, "Sync successful: ${localPlants.size} plants.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Sync failed: ${e.message}")
+        }
+    }
+
+    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part, imageUri: String): PlantIdentificationResponse? {
+        return try {
+            val response = plantApiService.identifyPlant(imagePart)
+            if (response.isSuccessful && response.body() != null) {
+                val result = response.body()!!
+                val localPlant = mapToEntity(result.userPlant, result.masterPlant, imageUri)
+                plantDao.insert(localPlant)
+                result
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Identification failed: ${e.message}")
+            null
+        }
+    }
+
+    // --- Action Methods ---
 
     suspend fun updatePlantName(plantId: String?, newName: String): Boolean {
         return try {
@@ -89,7 +120,17 @@ class PlantRepository(
                 true
             } else false
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to rename plant: ${e.message}")
+            Log.e(TAG, "Rename failed: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun connectSensor(plantId: String, sensorId: String): Boolean {
+        return try {
+            val response = plantApiService.connectSensor(plantId, sensorId)
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.e(TAG, "Sensor connect failed: ${e.message}")
             false
         }
     }
@@ -102,7 +143,7 @@ class PlantRepository(
                 true
             } else false
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to disconnect sensor: ${e.message}")
+            Log.e(TAG, "Sensor disconnect failed: ${e.message}")
             false
         }
     }
@@ -110,63 +151,9 @@ class PlantRepository(
     suspend fun deletePlant(plant: Plant) {
         try {
             val response = plantApiService.deletePlant(plant.firebaseId)
-            if (response.isSuccessful) {
-                plantDao.delete(plant)
-                Log.d(TAG, "Deleted plant ${plant.firebaseId} from remote and local.")
-            } else {
-                Log.e(TAG, "Remote delete failed with code ${response.code()}")
-            }
+            if (response.isSuccessful) plantDao.delete(plant)
         } catch (e: Exception) {
-            Log.e(TAG, "Remote delete failed: ${e.message}")
-            plantDao.delete(plant)
-        }
-    }
-    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part, imageUri: String): PlantIdentificationResponse? {
-        return try {
-            val response = plantApiService.identifyPlant(imagePart)
-            if (response.isSuccessful && response.body() != null) {
-                val result = response.body()!!
-
-                // Using the mapper!
-                val localPlant = mapToEntity(result.userPlant, result.masterPlant, imageUri)
-
-                plantDao.insert(localPlant)
-                result
-            } else null
-        } catch (e: Exception) {
-            Log.e(TAG, "Failure: ${e.message}")
-            null
-        }
-    }
-
-    suspend fun syncPlantsFromRemote() {
-        try {
-            coroutineScope {
-                val userPlants = plantApiService.getRemoteUserPlants()
-                val remoteMasterData = plantApiService.getRemoteMasterPlants()
-                val masterMap = remoteMasterData.associateBy { it.speciesName }
-
-                val localPlants = userPlants.map { userRemote ->
-                    val masterPlant = masterMap[userRemote.speciesName]
-                    // Using the mapper!
-                    mapToEntity(userRemote, masterPlant)
-                }
-
-                plantDao.deleteAll()
-                plantDao.insertAll(localPlants)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to sync: ${e.message}")
-        }
-    }
-
-    suspend fun connectSensor(plantId: String, sensorId: String): Boolean {
-        return try {
-            val response = plantApiService.connectSensor(plantId, sensorId)
-            response.isSuccessful
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect sensor: ${e.message}")
-            false
+            Log.e(TAG, "Delete failed: ${e.message}")
         }
     }
 

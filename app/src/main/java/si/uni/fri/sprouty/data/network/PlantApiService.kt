@@ -1,8 +1,10 @@
 package si.uni.fri.sprouty.data.network
 
+
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
+import si.uni.fri.sprouty.data.model.GardenProfileResponse
 import si.uni.fri.sprouty.data.model.MasterPlant
 import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
 import si.uni.fri.sprouty.data.model.UserPlant
@@ -14,6 +16,9 @@ interface PlantApiService {
     suspend fun identifyPlant(
         @Part image: MultipartBody.Part
     ): Response<PlantIdentificationResponse>
+
+    @GET("plants/profile")
+    suspend fun getGardenProfile(): Response<GardenProfileResponse>
 
     @GET("plants/masterPlants")
     suspend fun getRemoteMasterPlants(): List<MasterPlant>
@@ -31,8 +36,6 @@ interface PlantApiService {
         @Query("plantId") plantId: String,
         @Query("sensorId") sensorId: String
     ): Response<Unit>
-
-    // --- Added New Endpoints ---
 
     @PATCH("plants/{id}/rename")
     suspend fun renamePlant(

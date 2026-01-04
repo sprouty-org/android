@@ -168,7 +168,14 @@ class MainActivity : AppCompatActivity() {
     private fun showConnectSensorDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Connect Sensor")
-        builder.setMessage("Enter the 12-character Sensor ID")
+        builder.setMessage("Enter the 12-character Sensor ID printed on the sensor, be careful to use UPPERCASE letters.\n\n" +
+                "If this is your first time connecting this sensor to a plant, follow the rules below:\n" +
+                "1. Turn the sensor ON\n" +
+                "2. Visit your Wifi settings and connect to the network named \"Sprouty-Setup\"\n" +
+                "3. Press Configure WiFi button\n" +
+                "4. Click on your home Wifi name or enter the name in the Wifi SSID field below\n" +
+                "5. Slide to the password field and enter your Wifi password. Don't worry, it's only saved on the sensor\n" +
+                "6. IMPORTANT if you want your first reading immediately! First click Connect Sensor in this dialog and ONLY THEN return to the WiFi configuration page and click SAVE. That's it!\n")
 
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
