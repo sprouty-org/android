@@ -8,17 +8,13 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import si.uni.fri.sprouty.data.model.Plant // Updated import
 
-// Define all entities here. Increment the version number whenever you change the schema.
 @Database(entities = [Plant::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class) // <--- ADD THIS LINE
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
-    // Define the access point for the DAO
-    abstract fun plantDao(): PlantDao // Refers to the new PlantDao.kt
+    abstract fun plantDao(): PlantDao
 
-    // Companion object for Singleton Pattern (Will be replaced by DI)
     companion object {
-        // ... getDatabase implementation remains the same for now ...
         @Volatile
         private var INSTANCE: AppDatabase? = null
 

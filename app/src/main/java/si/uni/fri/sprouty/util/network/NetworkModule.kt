@@ -17,7 +17,7 @@ object NetworkModule {
 
     // IMPORTANT: Use the correct URL for your local network/Docker setup.
     // '10.0.2.2' is the standard way for an Android Emulator to access the host machine's localhost.
-    private const val BASE_URL = "http://192.168.1.15:8080/"
+    private const val BASE_URL = "http://34.32.180.229/"
 
     /**
      * Creates and configures the Retrofit instance.

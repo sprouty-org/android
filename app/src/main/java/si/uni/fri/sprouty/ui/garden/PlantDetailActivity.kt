@@ -12,7 +12,7 @@ import si.uni.fri.sprouty.R
 import si.uni.fri.sprouty.databinding.ActivityPlantDetailBinding
 import si.uni.fri.sprouty.data.network.PlantApiService
 import si.uni.fri.sprouty.util.network.NetworkModule
-import si.uni.fri.sprouty.util.limiters.ActionRateLimiter // Import the limiter
+import si.uni.fri.sprouty.util.limiters.ActionRateLimiter
 
 class PlantDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPlantDetailBinding
@@ -60,6 +60,8 @@ class PlantDetailActivity : AppCompatActivity() {
         val usesFormatted = usesList?.joinToString("\n\n") ?: "No uses available."
 
         val notifEnabled = intent.getBooleanExtra("NOTIF_ENABLED", true)
+
+        binding.switchNotifications.isChecked = notifEnabled
 
         // 3. Bind Header & Image
         binding.imagePlantDetail.load(imageUrl) {

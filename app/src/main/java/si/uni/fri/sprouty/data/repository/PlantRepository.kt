@@ -9,7 +9,7 @@ import si.uni.fri.sprouty.data.model.Plant
 import si.uni.fri.sprouty.data.model.UserPlant
 import si.uni.fri.sprouty.data.network.PlantApiService
 import si.uni.fri.sprouty.data.model.PlantIdentificationResponse
-
+import si.uni.fri.sprouty.data.model.parseError
 
 class PlantRepository(
     private val plantDao: PlantDao,
@@ -61,7 +61,7 @@ class PlantRepository(
             maxAirHumidity = maxAir,
             minSoilHumidity = minSoil,
             maxSoilHumidity = maxSoil,
-            targetWateringInterval = userRemote.targetWateringInterval, // Use user's specific interval
+            targetWateringInterval = userRemote.targetWateringInterval,
             requiredLightLevel = masterPlant?.light ?: "Unknown",
             careDifficulty = masterPlant?.careDifficulty ?: "Unknown"
         )
@@ -72,13 +72,11 @@ class PlantRepository(
     /**
      * Optimized Sync: Uses the /profile endpoint to get everything in one call.
      */
-    suspend fun syncPlantsFromRemote() {
-        try {
+    suspend fun syncPlantsFromRemote(): Result<Unit> {
+        return try {
             val response = plantApiService.getGardenProfile()
             if (response.isSuccessful && response.body() != null) {
                 val profile = response.body()!!
-
-                // Group master data by species name for lookup
                 val masterMap = profile.masterPlants.associateBy { it.speciesName }
 
                 val localPlants = profile.userPlants.map { userRemote ->
@@ -89,71 +87,104 @@ class PlantRepository(
                 plantDao.deleteAll()
                 plantDao.insertAll(localPlants)
                 Log.d(TAG, "Sync successful: ${localPlants.size} plants.")
+                Result.success(Unit)
+            } else {
+                val error = response.parseError()
+                Result.failure(Exception(error?.message ?: "Sync failed"))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed: ${e.message}")
+            Result.failure(e)
         }
     }
 
-    suspend fun identifyAndSavePlant(imagePart: MultipartBody.Part, imageUri: String): PlantIdentificationResponse? {
+    /**
+     * Identifies a plant via image and saves it to local database.
+     */
+    suspend fun identifyAndSavePlant(
+        imagePart: MultipartBody.Part,
+        imageUri: String
+    ): Result<PlantIdentificationResponse> {
         return try {
             val response = plantApiService.identifyPlant(imagePart)
             if (response.isSuccessful && response.body() != null) {
                 val result = response.body()!!
                 val localPlant = mapToEntity(result.userPlant, result.masterPlant, imageUri)
                 plantDao.insert(localPlant)
-                result
-            } else null
+                Result.success(result)
+            } else {
+                val errorObj = response.parseError()
+                val message = errorObj?.message ?: "Server Error: ${response.code()}"
+                Result.failure(Exception(message))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Identification failed: ${e.message}")
-            null
+            Result.failure(e)
         }
     }
 
     // --- Action Methods ---
 
-    suspend fun updatePlantName(plantId: String?, newName: String): Boolean {
+    suspend fun updatePlantName(plantId: String?, newName: String): Result<Unit> {
         return try {
             val response = plantApiService.renamePlant(plantId, newName)
             if (response.isSuccessful) {
                 plantDao.updatePlantName(plantId, newName)
-                true
-            } else false
+                Result.success(Unit)
+            } else {
+                val error = response.parseError()
+                Result.failure(Exception(error?.message ?: "Rename failed"))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Rename failed: ${e.message}")
-            false
+            Result.failure(e)
         }
     }
 
-    suspend fun connectSensor(plantId: String, sensorId: String): Boolean {
+    suspend fun connectSensor(plantId: String, sensorId: String): Result<Unit> {
         return try {
             val response = plantApiService.connectSensor(plantId, sensorId)
-            response.isSuccessful
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val error = response.parseError()
+                Result.failure(Exception(error?.message ?: "Connection failed"))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Sensor connect failed: ${e.message}")
-            false
+            Result.failure(e)
         }
     }
 
-    suspend fun disconnectSensor(plantId: String?): Boolean {
+    suspend fun disconnectSensor(plantId: String?): Result<Unit> {
         return try {
             val response = plantApiService.disconnectSensor(plantId)
             if (response.isSuccessful) {
                 plantDao.clearSensorId(plantId)
-                true
-            } else false
+                Result.success(Unit)
+            } else {
+                val error = response.parseError()
+                Result.failure(Exception(error?.message ?: "Disconnect failed"))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Sensor disconnect failed: ${e.message}")
-            false
+            Result.failure(e)
         }
     }
 
-    suspend fun deletePlant(plant: Plant) {
-        try {
+    suspend fun deletePlant(plant: Plant): Result<Unit> {
+        return try {
             val response = plantApiService.deletePlant(plant.firebaseId)
-            if (response.isSuccessful) plantDao.delete(plant)
+            if (response.isSuccessful) {
+                plantDao.delete(plant)
+                Result.success(Unit)
+            } else {
+                val error = response.parseError()
+                Result.failure(Exception(error?.message ?: "Delete failed"))
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Delete failed: ${e.message}")
+            Result.failure(e)
         }
     }
 

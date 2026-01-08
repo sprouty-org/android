@@ -42,7 +42,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
             lifecycleScope.launch {
                 // 2. Perform the heavy cleaning
-                firebaseUtils.logout(requireContext(), this) {
+                firebaseUtils.logout(this) {
                     // 3. Navigate ONLY after DB is confirmed empty
                     navigateToLogin()
                 }

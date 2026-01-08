@@ -8,51 +8,34 @@ import okhttp3.OkHttpClient
 import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import si.uni.fri.sprouty.util.auth.JwtUtils // Corrected path/class name
-import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil // Corrected class name
+import si.uni.fri.sprouty.util.auth.JwtUtils
+import si.uni.fri.sprouty.util.storage.SharedPreferencesUtil
 
-/**
- * OkHttp Interceptor responsible for:
- * 1. Attaching the JWT to the Authorization header of every outgoing request.
- * 2. Catching a 401 (Unauthorized) response and attempting to refresh the JWT token.
- *
- * NOTE: This Interceptor is self-sufficient. It manually instantiates its dependencies
- * using the Context, which is necessary when combining class-based utilities with an
- * OkHttp interceptor chain without a full DI framework.
- */
 class AuthInterceptor(
     private val context: Context,
 ) : Interceptor {
 
     private val TAG = "AuthInterceptor"
-    private val BASE_URL = "http://192.168.1.15:8080/"
+    private val BASE_URL = "http://34.32.180.229/"
 
-    // Manually instantiate the dependencies needed inside the interceptor using lazy
     private val sharedPrefsUtil by lazy { SharedPreferencesUtil(context.applicationContext) }
 
-    // CRITICAL: We create a separate Retrofit instance *without* this interceptor
-    // to avoid a recursive loop when JwtUtils.refreshJwtToken() makes its own API call.
     private val baseRetrofit by lazy {
-        OkHttpClient.Builder()
-            .build() // No interceptors
+        OkHttpClient.Builder().build()
     }
 
     private val baseRetrofitService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL) // Must match NetworkModule's BASE_URL
+            .baseUrl(BASE_URL)
             .client(baseRetrofit)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(AuthApiService::class.java) // Uses the correct interface name
+            .create(AuthApiService::class.java)
     }
 
-
-    // The JwtUtils class instance that has the correct dependencies
     private val jwtUtils by lazy { JwtUtils(baseRetrofitService, sharedPrefsUtil) }
 
-
     override fun intercept(chain: Interceptor.Chain): Response {
-        // Use the INSTANCE method (no Context needed now that SharedPreferencesUtil is a class)
         val originalRequest = chain.request()
         val path = originalRequest.url.encodedPath
 
@@ -62,43 +45,50 @@ class AuthInterceptor(
         }
 
         var jwt = sharedPrefsUtil.getAuthToken()
+        // FIX: Extract the User ID from SharedPreferences
+        val userId = sharedPrefsUtil.getUserId()
 
-        // 2. Attach JWT only for other endpoints (like /plants/identify)
+        // 2. Attach JWT and X-User-Id to outgoing requests
         val requestWithAuth = originalRequest.newBuilder()
             .apply {
-                if (jwt != null && jwt.isNotEmpty()) {
+                if (!jwt.isNullOrEmpty()) {
                     header("Authorization", "Bearer $jwt")
+                }
+                if (!userId.isNullOrEmpty()) {
+                    // Filter out any non-ASCII characters just in case
+                    // to prevent the "Unexpected char" crash
+                    val sanitizedId = userId.filter { it.code <= 127 }
+                    header("X-User-Id", sanitizedId)
                 }
             }
             .build()
 
         val response = chain.proceed(requestWithAuth)
 
-        // 2) Handle Token Expiration (401 Unauthorized)
+        // 3. Handle Token Expiration (401 Unauthorized)
         if (response.code == 401) {
-            response.close() // Close the failed response before retrying
+            response.close()
             Log.d(TAG, "JWT expired or invalid → attempting refresh")
 
-            // We use runBlocking because the interceptor MUST return a Response synchronously
             val tokenRefreshSuccess = runBlocking {
-                // Call the instance method on the dependency (no Context needed)
                 jwtUtils.refreshJwtToken()
             }
 
             if (tokenRefreshSuccess) {
-                // Get the newly saved token
                 jwt = sharedPrefsUtil.getAuthToken()
-                Log.d(TAG, "JWT refreshed successfully. Retrying request.")
+                val newUserId = sharedPrefsUtil.getUserId() // Refresh ID just in case
 
-                // Create and proceed with the retry request
+                Log.d(TAG, "JWT refreshed successfully. Retrying request.")
+                val sanitizedId = newUserId?.filter { it.code <= 127 }
+
                 val retryRequest = originalRequest.newBuilder()
                     .header("Authorization", "Bearer $jwt")
+                    .header("X-User-Id", sanitizedId ?: "")
                     .build()
 
                 return chain.proceed(retryRequest)
             } else {
                 Log.e(TAG, "Refresh failed. User must log in again.")
-                // Clear the local token
                 sharedPrefsUtil.clearUser()
             }
         }

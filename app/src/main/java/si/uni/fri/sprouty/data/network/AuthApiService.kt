@@ -3,7 +3,6 @@ package si.uni.fri.sprouty.data.network
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
-import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Url
@@ -40,14 +39,6 @@ data class RegisterRequest(
 data class AuthResponse(
     val firebaseUid: String,
     val token: String // The actual JWT token
-)
-
-/**
- * Expected response body when fetching the user's profile data.
- */
-data class UserDataResponse(
-    val name: String,
-    val email: String
 )
 
 

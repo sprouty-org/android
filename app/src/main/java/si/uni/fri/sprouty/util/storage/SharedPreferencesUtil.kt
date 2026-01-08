@@ -4,13 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
-/**
- * Utility class for managing JWT and user profile in local SharedPreferences.
- *
- * NOTE: This class has been converted to a standard class to be injectable,
- * requiring an Application Context in the constructor for safe access.
- */
-class SharedPreferencesUtil(context: Context) { // Converted from object to class
+class SharedPreferencesUtil(context: Context) {
 
     private val sharedPrefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -19,45 +13,31 @@ class SharedPreferencesUtil(context: Context) { // Converted from object to clas
         private const val PREFS_NAME = "user_prefs"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_PROFILE_NAME = "profile_name"
+        private const val KEY_USER_ID = "firebase_uid" // New key for the actual UID
     }
 
     /**
-     * Saves both the JWT token and the user's display name.
+     * Updated to take three parameters from AuthResponse
      */
-    fun saveUser(jwt: String, name: String) {
+    fun saveUser(jwt: String, name: String, firebaseUid: String) {
         sharedPrefs.edit {
             putString(KEY_AUTH_TOKEN, jwt)
             putString(KEY_PROFILE_NAME, name)
+            putString(KEY_USER_ID, firebaseUid) // Save the alphanumeric UID here
         }
     }
 
-    /**
-     * Saves only the JWT token (used during token refresh).
-     */
     fun saveToken(jwt: String) {
         sharedPrefs.edit { putString(KEY_AUTH_TOKEN, jwt) }
     }
 
-    /**
-     * Retrieves the saved JWT token.
-     */
-    fun getAuthToken(): String? {
-        return sharedPrefs.getString(KEY_AUTH_TOKEN, null)
-    }
+    fun getAuthToken(): String? = sharedPrefs.getString(KEY_AUTH_TOKEN, null)
 
-    fun getUserId(): String? {
-        return sharedPrefs.getString(KEY_PROFILE_NAME, null)
-    }
+    fun getProfileName(): String? = sharedPrefs.getString(KEY_PROFILE_NAME, null)
 
+    fun getUserId(): String? = sharedPrefs.getString(KEY_USER_ID, null)
 
-    /**
-     * Clears all user data (JWT and profile name).
-     */
     fun clearUser() {
         sharedPrefs.edit { clear() }
-    }
-
-    fun getSharedPreferences(): SharedPreferences {
-        return sharedPrefs
     }
 }
