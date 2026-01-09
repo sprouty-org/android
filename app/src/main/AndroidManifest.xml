@@ -18,9 +18,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Sprouty">
         <activity
-            android:name=".ui.shop.ShopActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false" />
         <activity

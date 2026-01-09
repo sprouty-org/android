@@ -205,20 +205,32 @@ class MainActivity : AppCompatActivity() {
     private fun showConnectSensorDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Connect Sensor")
-        builder.setMessage("Enter the 12-character Sensor ID (UPPERCASE).")
+        builder.setMessage("Enter the 12-character Sensor ID printed on the sensor, be careful to use UPPERCASE letters.\n\n" +
+                "If this is your first time connecting this sensor to a plant, follow the rules below:\n" +
+                "1. Turn the sensor ON\n" +
+                "2. Visit your Wifi settings and connect to the network named \"Sprouty-Setup\"\n" +
+                "3. Press Configure WiFi button\n" +
+                "4. Click on your home Wifi name or enter the name in the Wifi SSID field below\n" +
+                "5. Slide to the password field and enter your Wifi password. Don't worry, it's only saved on the sensor\n" +
+                "6. IMPORTANT if you want your first reading immediately! First click Connect Sensor in this dialog and ONLY THEN return to the WiFi configuration page and click SAVE. That's it!\n")
+
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(12))
         input.hint = "AABBCCDDEEFF"
+
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         params.setMargins(60, 20, 60, 20)
         input.layoutParams = params
         container.addView(input)
         builder.setView(container)
+
         builder.setPositiveButton("Connect") { _, _ ->
             val sensorId = input.text.toString().trim()
-            if (sensorId.isNotEmpty()) viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
+            if (sensorId.isNotEmpty()) {
+                viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
+            }
         }
         builder.setNegativeButton("Cancel", null)
         builder.show()
@@ -233,12 +245,14 @@ class MainActivity : AppCompatActivity() {
             putExtra("SPECIES_NAME", plant.speciesName)
             putExtra("CUSTOM_NAME", plant.customName)
             putExtra("PLANT_FACT", plant.botanicalFact)
+
             putExtra("PLANT_TYPE", plant.botanicalType)
             putExtra("PLANT_LIFE", plant.lifecycle)
             putExtra("PLANT_GROWTH", plant.growthHabit)
             putExtra("PLANT_HEIGHT", plant.maxHeight)
             putExtra("CARE_DIFFICULTY", plant.careDifficulty)
             putExtra("WATERING_INTERVAL", plant.targetWateringInterval)
+
             putExtra("MIN_TEMP", plant.minTemp)
             putExtra("MAX_TEMP", plant.maxTemp)
             putExtra("MIN_AIR_HUMIDITY", plant.minAirHumidity)
@@ -247,9 +261,10 @@ class MainActivity : AppCompatActivity() {
             putExtra("MAX_SOIL_HUMIDITY", plant.maxSoilHumidity)
             putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
             putExtra("PLANT_SOIL", plant.soilType)
+
             putExtra("PLANT_TOX", plant.toxicity)
             putExtra("PLANT_FRUIT", plant.fruitInfo)
-            putExtra("PLANT_USES", ArrayList(plant.uses ?: emptyList()))
+            putExtra("PLANT_USES", ArrayList(plant.uses))
             putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
         }
         startActivity(intent)
