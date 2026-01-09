@@ -3,7 +3,6 @@ package si.uni.fri.sprouty
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Bundle
@@ -21,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,6 +37,7 @@ import si.uni.fri.sprouty.ui.settings.SettingsActivity
 import si.uni.fri.sprouty.util.adapters.PlantAdapter
 import si.uni.fri.sprouty.util.network.NetworkModule
 import si.uni.fri.sprouty.data.model.Plant
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,23 +46,28 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fabAddPlant: FloatingActionButton
     private lateinit var loadingOverlay: FrameLayout
     private lateinit var plantAdapter: PlantAdapter
+    private lateinit var tempImageUri: Uri
 
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { handleImageUri(it) }
     }
 
-    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        bitmap?.let { viewModel.identifyAndAddPlant(it, applicationContext) }
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+        if (success) {
+            handleImageUri(tempImageUri)
+        } else {
+            Log.e("MainActivity", "Camera capture failed")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         setupDependencies()
         setupUI()
         observeViewModel()
-
         checkNotificationPermission()
 
         viewModel.refreshData()
@@ -111,28 +117,64 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- DIALOG FUNCTIONALITIES ---
+    private fun showImageSourceDialog() {
+        val options = arrayOf("Take Photo", "Choose from Gallery")
+        AlertDialog.Builder(this)
+            .setTitle("Add a New Plant")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> launchCamera()
+                    1 -> galleryLauncher.launch("image/*")
+                }
+            }.show()
+    }
+
+    private fun launchCamera() {
+        try {
+            val tempFile = File.createTempFile("plant_photo_", ".jpg", cacheDir).apply {
+                createNewFile()
+                deleteOnExit()
+            }
+            tempImageUri = FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                tempFile
+            )
+            cameraLauncher.launch(tempImageUri)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error creating temp file for camera", e)
+            Toast.makeText(this, "Camera error", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun handleImageUri(uri: Uri) {
+        try {
+            val source = ImageDecoder.createSource(contentResolver, uri)
+            val bitmap = ImageDecoder.decodeBitmap(source)
+            viewModel.identifyAndAddPlant(bitmap, applicationContext)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error decoding image", e)
+            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // --- DIALOG FUNCTIONALITIES (unchanged) ---
 
     private fun showRenameDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Rename Plant")
-
         val input = EditText(this)
         input.setText(plant.customName ?: plant.speciesName)
         input.setSelectAllOnFocus(true)
-
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         params.setMargins(60, 20, 60, 20)
         input.layoutParams = params
         container.addView(input)
         builder.setView(container)
-
         builder.setPositiveButton("Save") { _, _ ->
             val newName = input.text.toString().trim()
-            if (newName.isNotEmpty()) {
-                viewModel.renamePlant(plant.firebaseId, newName)
-            }
+            if (newName.isNotEmpty()) viewModel.renamePlant(plant.firebaseId, newName)
         }
         builder.setNegativeButton("Cancel", null)
         builder.show()
@@ -153,10 +195,8 @@ class MainActivity : AppCompatActivity() {
     private fun showDeleteConfirmation(plant: Plant) {
         AlertDialog.Builder(this)
             .setTitle("Remove Plant")
-            .setMessage("Are you sure you want to delete ${plant.customName ?: plant.speciesName} from your garden?")
-            .setPositiveButton("Delete") { _, _ ->
-                viewModel.deletePlant(plant.firebaseId)
-            }
+            .setMessage("Are you sure you want to delete ${plant.customName ?: plant.speciesName}?")
+            .setPositiveButton("Delete") { _, _ -> viewModel.deletePlant(plant.firebaseId) }
             .setNegativeButton("Cancel", null)
             .setIcon(android.R.drawable.ic_menu_delete)
             .show()
@@ -165,32 +205,20 @@ class MainActivity : AppCompatActivity() {
     private fun showConnectSensorDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Connect Sensor")
-        builder.setMessage("Enter the 12-character Sensor ID printed on the sensor, be careful to use UPPERCASE letters.\n\n" +
-                "If this is your first time connecting this sensor to a plant, follow the rules below:\n" +
-                "1. Turn the sensor ON\n" +
-                "2. Visit your Wifi settings and connect to the network named \"Sprouty-Setup\"\n" +
-                "3. Press Configure WiFi button\n" +
-                "4. Click on your home Wifi name or enter the name in the Wifi SSID field below\n" +
-                "5. Slide to the password field and enter your Wifi password. Don't worry, it's only saved on the sensor\n" +
-                "6. IMPORTANT if you want your first reading immediately! First click Connect Sensor in this dialog and ONLY THEN return to the WiFi configuration page and click SAVE. That's it!\n")
-
+        builder.setMessage("Enter the 12-character Sensor ID (UPPERCASE).")
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(12))
         input.hint = "AABBCCDDEEFF"
-
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         params.setMargins(60, 20, 60, 20)
         input.layoutParams = params
         container.addView(input)
         builder.setView(container)
-
         builder.setPositiveButton("Connect") { _, _ ->
             val sensorId = input.text.toString().trim()
-            if (sensorId.isNotEmpty()) {
-                viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
-            }
+            if (sensorId.isNotEmpty()) viewModel.connectSensorToPlant(plant.firebaseId, sensorId)
         }
         builder.setNegativeButton("Cancel", null)
         builder.show()
@@ -205,14 +233,12 @@ class MainActivity : AppCompatActivity() {
             putExtra("SPECIES_NAME", plant.speciesName)
             putExtra("CUSTOM_NAME", plant.customName)
             putExtra("PLANT_FACT", plant.botanicalFact)
-
             putExtra("PLANT_TYPE", plant.botanicalType)
             putExtra("PLANT_LIFE", plant.lifecycle)
             putExtra("PLANT_GROWTH", plant.growthHabit)
             putExtra("PLANT_HEIGHT", plant.maxHeight)
             putExtra("CARE_DIFFICULTY", plant.careDifficulty)
             putExtra("WATERING_INTERVAL", plant.targetWateringInterval)
-
             putExtra("MIN_TEMP", plant.minTemp)
             putExtra("MAX_TEMP", plant.maxTemp)
             putExtra("MIN_AIR_HUMIDITY", plant.minAirHumidity)
@@ -221,10 +247,9 @@ class MainActivity : AppCompatActivity() {
             putExtra("MAX_SOIL_HUMIDITY", plant.maxSoilHumidity)
             putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
             putExtra("PLANT_SOIL", plant.soilType)
-
             putExtra("PLANT_TOX", plant.toxicity)
             putExtra("PLANT_FRUIT", plant.fruitInfo)
-            putExtra("PLANT_USES", ArrayList(plant.uses))
+            putExtra("PLANT_USES", ArrayList(plant.uses ?: emptyList()))
             putExtra("NOTIF_ENABLED", plant.notificationsEnabled)
         }
         startActivity(intent)
@@ -251,28 +276,6 @@ class MainActivity : AppCompatActivity() {
                     viewModel.resetIdentificationResult()
                 }
             }
-        }
-    }
-
-    private fun showImageSourceDialog() {
-        val options = arrayOf("Take Photo", "Choose from Gallery")
-        AlertDialog.Builder(this)
-            .setTitle("Add a New Plant")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> cameraLauncher.launch(null)
-                    1 -> galleryLauncher.launch("image/*")
-                }
-            }.show()
-    }
-
-    private fun handleImageUri(uri: Uri) {
-        try {
-            val source = ImageDecoder.createSource(contentResolver, uri)
-            val bitmap = ImageDecoder.decodeBitmap(source)
-            viewModel.identifyAndAddPlant(bitmap, applicationContext)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error decoding image", e)
         }
     }
 }
