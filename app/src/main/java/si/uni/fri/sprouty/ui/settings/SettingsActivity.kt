@@ -9,7 +9,6 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // You might use a simple layout file, or just define the content
         setContentView(R.layout.activity_settings)
 
         if (savedInstanceState == null) {
@@ -18,7 +17,5 @@ class SettingsActivity : AppCompatActivity() {
                 .replace(R.id.settings_container, SettingsFragment())
                 .commit()
         }
-
-        // Optional: Add a toolbar/action bar here if your theme doesn't handle it.
     }
 }

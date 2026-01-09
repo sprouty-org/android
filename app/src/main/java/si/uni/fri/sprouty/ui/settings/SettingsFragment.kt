@@ -28,7 +28,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val authApiService = NetworkModule.provideRetrofit(context).create(AuthApiService::class.java)
         val sharedPreferencesUtilDep = SharedPreferencesUtil(context)
 
-        // Assuming your FirebaseUtils handles the cleanup logic
         firebaseUtils = FirebaseUtils(authApiService, sharedPreferencesUtilDep)
 
         setupLogoutButton()
@@ -37,13 +36,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun setupLogoutButton() {
         findPreference<Preference>("logout_button")?.setOnPreferenceClickListener {
-            // 1. Tell the UI to clear immediately (Optional but helpful)
-            // plantViewModel.clearUiList()
-
             lifecycleScope.launch {
-                // 2. Perform the heavy cleaning
                 firebaseUtils.logout(this) {
-                    // 3. Navigate ONLY after DB is confirmed empty
                     navigateToLogin()
                 }
             }
@@ -65,10 +59,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
             .setPositiveButton("Delete Everything") { _, _ ->
                 showLoading()
 
-                // Pre-emptively clear the image cache so photos don't "ghost"
                 coil.Coil.imageLoader(requireContext()).memoryCache?.clear()
 
-                // 2. Call the deletion logic
                 firebaseUtils.deleteUser(requireContext(), viewLifecycleOwner.lifecycleScope) {
                     hideLoading()
                     navigateToRegister()

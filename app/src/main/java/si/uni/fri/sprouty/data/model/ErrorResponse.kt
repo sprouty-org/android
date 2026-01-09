@@ -13,7 +13,7 @@ fun <T> Response<T>.parseError(): ErrorResponse? {
     val errorJson = errorBody()?.string()
     return try {
         Gson().fromJson(errorJson, ErrorResponse::class.java)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }

@@ -22,8 +22,6 @@ interface PlantDao {
     @Update
     suspend fun update(plant: Plant)
 
-    // --- Added Specific Update Queries ---
-
     @Query("UPDATE plants SET customName = :newName WHERE firebaseId = :plantId")
     suspend fun updatePlantName(plantId: String?, newName: String)
 

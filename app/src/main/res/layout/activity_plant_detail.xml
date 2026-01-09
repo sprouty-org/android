@@ -139,12 +139,11 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/plant_watering_interval_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Just watered your plant? Reset the timer manually to keep your schedule accurate."
-                        android:textColor="#757575"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="6dp"
+                        android:text="The watering interval of your plant" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnWaterPlant"

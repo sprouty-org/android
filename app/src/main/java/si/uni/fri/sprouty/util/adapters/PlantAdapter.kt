@@ -22,7 +22,14 @@ class PlantAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlantViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_plant, parent, false)
-        return PlantViewHolder(view, onItemClick, onConnectSensorClick, onRenameClick, onDeleteClick, onDisconnectSensorClick)
+        return PlantViewHolder(
+            view,
+            onItemClick,
+            onConnectSensorClick,
+            onRenameClick,
+            onDeleteClick,
+            onDisconnectSensorClick
+        )
     }
 
     override fun onBindViewHolder(holder: PlantViewHolder, position: Int) {
@@ -48,10 +55,28 @@ class PlantAdapter(
         private val tvMoisture: TextView = itemView.findViewById(R.id.tvMoisture)
         private val tvTemp: TextView = itemView.findViewById(R.id.tvTemp)
         private val tvHumidity: TextView = itemView.findViewById(R.id.tvHumidity)
+        private val tvHealth: TextView = itemView.findViewById(R.id.tvHealthStatus)
+
 
         fun bind(plant: Plant) {
             tvName.text = plant.customName ?: plant.speciesName
             tvSpecies.text = plant.speciesName
+
+            // --- Health Status Logic ---
+            val status = plant.healthStatus
+            tvHealth.text = status.uppercase()
+
+            val colorRes = when (status) {
+                "Healthy" -> "#2E7D32" // Healthy (Forest Green)
+                "Thirsty", "Dry Air", "Too Cold", "Too Hot", "Overwatered", "Too Humid" -> "#EF6C00" // Warnings (Orange)
+                "Freezing Risk" -> "#C62828" // Critical (Red)
+                else -> "#757575"
+            }
+
+            val parsedColor = android.graphics.Color.parseColor(colorRes)
+            tvHealth.setTextColor(parsedColor)
+            tvHealth.background.setTint(parsedColor)
+            tvHealth.background.alpha = 25
 
             imgPlant.load(plant.imageUrl) {
                 crossfade(true)
@@ -64,22 +89,26 @@ class PlantAdapter(
                 val popup = PopupMenu(view.context, view)
                 popup.inflate(R.menu.plant_item_menu)
 
-                // Only show "Disconnect" if a sensor is actually there
                 val hasSensor = !plant.connectedSensorId.isNullOrEmpty()
                 popup.menu.findItem(R.id.action_disconnect_sensor).isVisible = hasSensor
 
                 popup.setOnMenuItemClickListener { item ->
                     when (item.itemId) {
-                        R.id.action_rename -> { onRename(plant); true }
-                        R.id.action_delete -> { onDelete(plant); true }
-                        R.id.action_disconnect_sensor -> { onDisconnect(plant); true }
+                        R.id.action_rename -> {
+                            onRename(plant); true
+                        }
+                        R.id.action_delete -> {
+                            onDelete(plant); true
+                        }
+                        R.id.action_disconnect_sensor -> {
+                            onDisconnect(plant); true
+                        }
                         else -> false
                     }
                 }
                 popup.show()
             }
 
-            // --- Sensor Display Logic ---
             val isSensorConnected = !plant.connectedSensorId.isNullOrEmpty()
             if (isSensorConnected) {
                 btnConnect.isVisible = false
@@ -96,12 +125,12 @@ class PlantAdapter(
             itemView.setOnClickListener { onClick(plant) }
         }
     }
+}
 
-    class PlantDiffCallback : DiffUtil.ItemCallback<Plant>() {
-        override fun areItemsTheSame(oldItem: Plant, newItem: Plant): Boolean =
-            oldItem.firebaseId == newItem.firebaseId
+class PlantDiffCallback : DiffUtil.ItemCallback<Plant>() {
+    override fun areItemsTheSame(oldItem: Plant, newItem: Plant): Boolean =
+        oldItem.firebaseId == newItem.firebaseId
 
-        override fun areContentsTheSame(oldItem: Plant, newItem: Plant): Boolean =
-            oldItem == newItem
-    }
+    override fun areContentsTheSame(oldItem: Plant, newItem: Plant): Boolean =
+        oldItem == newItem
 }

@@ -41,7 +41,6 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
     private val _identificationResult = MutableStateFlow<PlantIdentificationResponse?>(null)
     val identificationResult = _identificationResult.asStateFlow()
 
-    // NEW: Error event flow for the UI to observe (Toasts/Snackbars)
     private val _errorEvents = MutableSharedFlow<String>()
     val errorEvents = _errorEvents.asSharedFlow()
 
@@ -107,7 +106,6 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
         viewModelScope.launch {
             _isIdentifying.value = true
             try {
-                // Prepare image
                 val imageFile = File(context.filesDir, "plant_${System.currentTimeMillis()}.jpg")
                 context.openFileOutput(imageFile.name, Context.MODE_PRIVATE).use { fos ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
@@ -122,7 +120,6 @@ class PlantViewModel(private val repository: PlantRepository) : ViewModel() {
                     stream.toByteArray().toRequestBody("image/jpeg".toMediaTypeOrNull())
                 )
 
-                // Call repository and handle Result
                 val result = repository.identifyAndSavePlant(body, imagePath)
 
                 result.onSuccess { data ->

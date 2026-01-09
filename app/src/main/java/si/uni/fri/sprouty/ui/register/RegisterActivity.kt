@@ -50,7 +50,7 @@ class RegisterActivity : AppCompatActivity() {
         val plantRepository = PlantRepository(db.plantDao(), plantApiService)
         val sharedPrefs = SharedPreferencesUtil(applicationContext)
 
-        // Instantiate FirebaseUtils with all dependencies
+        // Instantiate FirebaseUtils
         firebaseUtils = FirebaseUtils(authApiService, sharedPrefs, plantRepository)
 
         // --- UI BINDING ---
@@ -61,14 +61,12 @@ class RegisterActivity : AppCompatActivity() {
         val btnGoogleRegister = findViewById<ImageButton>(R.id.btnGoogle)
         val btnGoToLogin = findViewById<Button>(R.id.btnGoToLogin)
 
-        // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Listeners
         btnSignUp.setOnClickListener {
             val email = emailField.text.toString().trim()
             val pass = passwordField.text.toString().trim()

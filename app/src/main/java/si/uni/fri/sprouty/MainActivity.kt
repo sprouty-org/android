@@ -65,14 +65,12 @@ class MainActivity : AppCompatActivity() {
         checkNotificationPermission()
 
         viewModel.refreshData()
-        //NotificationHelper.triggerLocalNotification(this, "Local Test", "This didn't use the backend!")
     }
 
     private fun checkNotificationPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED) {
 
-            // Request the permission
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -96,7 +94,6 @@ class MainActivity : AppCompatActivity() {
 
         recyclerPlants.layoutManager = LinearLayoutManager(this)
 
-        // Initialize Adapter with all 5 callbacks
         plantAdapter = PlantAdapter(
             onItemClick = { plant -> navigateToDetail(plant) },
             onConnectSensorClick = { plant -> showConnectSensorDialog(plant) },
@@ -114,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- NEW DIALOG FUNCTIONALITIES ---
+    // --- DIALOG FUNCTIONALITIES ---
 
     private fun showRenameDialog(plant: Plant) {
         val builder = AlertDialog.Builder(this)
@@ -203,21 +200,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateToDetail(plant: Plant) {
         val intent = Intent(this, PlantDetailActivity::class.java).apply {
-            // Basic Info
             putExtra("FIREBASE_ID", plant.firebaseId)
             putExtra("PLANT_IMAGE_URL", plant.imageUrl)
             putExtra("SPECIES_NAME", plant.speciesName)
             putExtra("CUSTOM_NAME", plant.customName)
             putExtra("PLANT_FACT", plant.botanicalFact)
 
-            // Botanical Info
             putExtra("PLANT_TYPE", plant.botanicalType)
             putExtra("PLANT_LIFE", plant.lifecycle)
             putExtra("PLANT_GROWTH", plant.growthHabit)
             putExtra("PLANT_HEIGHT", plant.maxHeight)
             putExtra("CARE_DIFFICULTY", plant.careDifficulty)
+            putExtra("WATERING_INTERVAL", plant.targetWateringInterval)
 
-            // Environment & Care
             putExtra("MIN_TEMP", plant.minTemp)
             putExtra("MAX_TEMP", plant.maxTemp)
             putExtra("MIN_AIR_HUMIDITY", plant.minAirHumidity)
@@ -227,7 +222,6 @@ class MainActivity : AppCompatActivity() {
             putExtra("LIGHT_LEVEL", plant.requiredLightLevel)
             putExtra("PLANT_SOIL", plant.soilType)
 
-            // Extras
             putExtra("PLANT_TOX", plant.toxicity)
             putExtra("PLANT_FRUIT", plant.fruitInfo)
             putExtra("PLANT_USES", ArrayList(plant.uses))

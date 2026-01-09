@@ -16,9 +16,6 @@ class SharedPreferencesUtil(context: Context) {
         private const val KEY_USER_ID = "firebase_uid" // New key for the actual UID
     }
 
-    /**
-     * Updated to take three parameters from AuthResponse
-     */
     fun saveUser(jwt: String, name: String, firebaseUid: String) {
         sharedPrefs.edit {
             putString(KEY_AUTH_TOKEN, jwt)

@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import si.uni.fri.sprouty.data.model.Plant // Updated import
+import si.uni.fri.sprouty.data.model.Plant
 
 @Database(entities = [Plant::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)

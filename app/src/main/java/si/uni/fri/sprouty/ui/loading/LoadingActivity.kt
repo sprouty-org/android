@@ -23,7 +23,7 @@ class LoadingActivity : AppCompatActivity() {
     private lateinit var jwtUtils: JwtUtils
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1. Install Splash Screen before super.onCreate
+        // Install Splash Screen before super.onCreate
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_loading)
@@ -32,14 +32,11 @@ class LoadingActivity : AppCompatActivity() {
         var isReady = false
         splashScreen.setKeepOnScreenCondition { !isReady }
 
-        // 2. Setup Dependencies
         sharedPreferencesUtil = SharedPreferencesUtil(applicationContext)
         val authApiService = NetworkModule.provideRetrofit(applicationContext).create(AuthApiService::class.java)
         jwtUtils = JwtUtils(authApiService, sharedPreferencesUtil)
 
-        // 3. Authenticate and Navigate
         lifecycleScope.launch {
-            // Optional: minimal delay to show branding if needed
             delay(500)
             handleStartupAuth()
             isReady = true
@@ -70,7 +67,7 @@ class LoadingActivity : AppCompatActivity() {
         if (jwtUtils.refreshJwtToken()) {
             startActivity(Intent(this, MainActivity::class.java))
         } else {
-            // Case D: Refresh failed (e.g., refresh token expired), go to Login
+            // Case D: Refresh failed, go to Login
             startActivity(Intent(this, LoginActivity::class.java))
         }
         finish()

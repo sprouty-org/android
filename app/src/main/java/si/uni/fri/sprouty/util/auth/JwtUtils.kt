@@ -27,7 +27,7 @@ class JwtUtils(
             val exp = payload.getLong("exp")
             val now = System.currentTimeMillis() / 1000
             now >= exp - 3600
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             true
         }
     }

@@ -69,9 +69,7 @@ class PlantRepository(
 
     fun getAllPlants(): Flow<List<Plant>> = plantDao.getAllPlants()
 
-    /**
-     * Optimized Sync: Uses the /profile endpoint to get everything in one call.
-     */
+
     suspend fun syncPlantsFromRemote(): Result<Unit> {
         return try {
             val response = plantApiService.getGardenProfile()
@@ -98,9 +96,6 @@ class PlantRepository(
         }
     }
 
-    /**
-     * Identifies a plant via image and saves it to local database.
-     */
     suspend fun identifyAndSavePlant(
         imagePart: MultipartBody.Part,
         imageUri: String

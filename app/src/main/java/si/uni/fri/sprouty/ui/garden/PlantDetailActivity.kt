@@ -27,10 +27,10 @@ class PlantDetailActivity : AppCompatActivity() {
         plantApiService = NetworkModule.provideRetrofit(applicationContext)
             .create(PlantApiService::class.java)
 
-        // 1. Setup Navigation
+
         binding.btnBack.setOnClickListener { finish() }
 
-        // 2. Extract Data from Intent
+
         val plantId = intent.getStringExtra("FIREBASE_ID") ?: ""
         val imageUrl = intent.getStringExtra("PLANT_IMAGE_URL")
         val species = intent.getStringExtra("SPECIES_NAME") ?: "Unknown Species"
@@ -42,6 +42,8 @@ class PlantDetailActivity : AppCompatActivity() {
         val growth = intent.getStringExtra("PLANT_GROWTH") ?: "Moderate"
         val maxHeight = intent.getIntExtra("PLANT_HEIGHT", 0)
         val difficulty = intent.getStringExtra("CARE_DIFFICULTY") ?: "Moderate"
+        val wateringInterval = intent.getIntExtra("WATERING_INTERVAL", 7)
+
 
         val minT = intent.getIntExtra("MIN_TEMP", 0)
         val maxT = intent.getIntExtra("MAX_TEMP", 0)
@@ -55,15 +57,33 @@ class PlantDetailActivity : AppCompatActivity() {
         val tox = intent.getStringExtra("PLANT_TOX") ?: "Unknown"
         val fruit = intent.getStringExtra("PLANT_FRUIT") ?: "None"
 
-        // Use double newline for uses list
+
         val usesList = intent.getStringArrayListExtra("PLANT_USES")
-        val usesFormatted = usesList?.joinToString("\n\n") ?: "No uses available."
+        val mergedUses = mutableListOf<String>()
+
+        usesList?.forEach { use ->
+            val trimmedUse = use.trim()
+            if (trimmedUse.isNotEmpty()) {
+                if (mergedUses.isNotEmpty() && trimmedUse[0].isLowerCase()) {
+                    val lastIndex = mergedUses.size - 1
+                    mergedUses[lastIndex] = "${mergedUses[lastIndex]}, $trimmedUse"
+                } else {
+                    mergedUses.add(trimmedUse)
+                }
+            }
+        }
+        mergedUses.removeAll { it.isBlank() }
+
+        val usesFormatted = if (mergedUses.isNotEmpty()) {
+            mergedUses.joinToString("\n\n")
+        } else {
+            "No common uses"
+        }
 
         val notifEnabled = intent.getBooleanExtra("NOTIF_ENABLED", true)
-
         binding.switchNotifications.isChecked = notifEnabled
 
-        // 3. Bind Header & Image
+
         binding.imagePlantDetail.load(imageUrl) {
             crossfade(true)
             placeholder(R.drawable.ic_missing_image)
@@ -76,10 +96,9 @@ class PlantDetailActivity : AppCompatActivity() {
             handleNotifChange(v, checked, plantId)
         }
 
-        // 5. Water Plant Logic with Rate Limiter
+        binding.plantWateringIntervalText.text = "This plant needs to be watered every $wateringInterval days unless the smart sensor says otherwise.\n\n" +
+                "Please click the button below when you water the plant so we can send you a notification when it's time to water again."
         binding.btnWaterPlant.apply {
-            // Fix icon color (remove white tint)
-            iconTint = null
             setOnClickListener {
                 if (ActionRateLimiter.canPerformAction("water_$plantId", 5000)) {
                     waterPlant(plantId)
@@ -89,10 +108,9 @@ class PlantDetailActivity : AppCompatActivity() {
             }
         }
 
-        // 6. Fun Fact
         binding.tvDetailFact.text = fact
 
-        // 7. Bind Cards
+
         binding.cardDifficulty.apply {
             cardTitle.text = "Care Difficulty"
             cardIcon.setImageResource(R.drawable.ic_difficulty)
@@ -169,10 +187,10 @@ class PlantDetailActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Please wait...", Toast.LENGTH_SHORT).show()
 
-            buttonView.setOnCheckedChangeListener(null) // Unbind
-            buttonView.isChecked = !isChecked          // Revert
+            buttonView.setOnCheckedChangeListener(null)
+            buttonView.isChecked = !isChecked
             buttonView.setOnCheckedChangeListener { v, checked ->
-                handleNotifChange(v, checked, plantId) // Rebind
+                handleNotifChange(v, checked, plantId)
             }
         }
     }

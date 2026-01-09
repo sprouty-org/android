@@ -16,7 +16,7 @@ class AuthInterceptor(
 ) : Interceptor {
 
     private val TAG = "AuthInterceptor"
-    private val BASE_URL = "http://34.32.180.229/"
+    private val BASE_URL = "http://sprouty.duckdns.org/"
 
     private val sharedPrefsUtil by lazy { SharedPreferencesUtil(context.applicationContext) }
 
@@ -39,24 +39,19 @@ class AuthInterceptor(
         val originalRequest = chain.request()
         val path = originalRequest.url.encodedPath
 
-        // 1. SKIP logic for login/register endpoints
         if (path.contains("/users/register") || path.contains("/users/login")) {
             return chain.proceed(originalRequest)
         }
 
         var jwt = sharedPrefsUtil.getAuthToken()
-        // FIX: Extract the User ID from SharedPreferences
         val userId = sharedPrefsUtil.getUserId()
 
-        // 2. Attach JWT and X-User-Id to outgoing requests
         val requestWithAuth = originalRequest.newBuilder()
             .apply {
                 if (!jwt.isNullOrEmpty()) {
                     header("Authorization", "Bearer $jwt")
                 }
                 if (!userId.isNullOrEmpty()) {
-                    // Filter out any non-ASCII characters just in case
-                    // to prevent the "Unexpected char" crash
                     val sanitizedId = userId.filter { it.code <= 127 }
                     header("X-User-Id", sanitizedId)
                 }
@@ -65,7 +60,6 @@ class AuthInterceptor(
 
         val response = chain.proceed(requestWithAuth)
 
-        // 3. Handle Token Expiration (401 Unauthorized)
         if (response.code == 401) {
             response.close()
             Log.d(TAG, "JWT expired or invalid → attempting refresh")
@@ -76,7 +70,7 @@ class AuthInterceptor(
 
             if (tokenRefreshSuccess) {
                 jwt = sharedPrefsUtil.getAuthToken()
-                val newUserId = sharedPrefsUtil.getUserId() // Refresh ID just in case
+                val newUserId = sharedPrefsUtil.getUserId()
 
                 Log.d(TAG, "JWT refreshed successfully. Retrying request.")
                 val sanitizedId = newUserId?.filter { it.code <= 127 }

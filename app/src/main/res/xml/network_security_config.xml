@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">10.117.113.22</domain>
-        <domain includeSubdomains="true">192.168.1.15</domain>
-        <domain includeSubdomains="true">34.32.180.229</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> # emulator
+        <domain includeSubdomains="true">10.117.113.22</domain> # my phone
+        <domain includeSubdomains="true">192.168.1.15</domain> # my PC
+        <domain includeSubdomains="true">sprouty.duckdns.org</domain> # current gateway IP
     </domain-config>
 </network-security-config>

@@ -2,13 +2,7 @@ package si.uni.fri.sprouty.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.google.gson.annotations.SerializedName
 
-// --- 1. PLANT ENTITY ---
-
-/**
- * Represents a single user-owned plant instance in the local Room database.
- */
 @Entity(tableName = "plants")
 data class Plant(
     @PrimaryKey(autoGenerate = true) val localId: Long = 0,
@@ -19,12 +13,11 @@ data class Plant(
     val healthStatus: String,
     val lastWatered: Long,
 
-    // --- Sensor Readings (Add these) ---
+    // --- Sensor Readings ---
     val currentHumiditySoil: Double = 0.0,
     val currentTemperature: Double? = null,
     val currentHumidityAir: Double? = null,
 
-    // ... (rest of your existing fields)
     val botanicalFact: String? = null,
     val toxicity: String? = null,
     val growthHabit: String? = null,
@@ -48,9 +41,6 @@ data class Plant(
     val lastSeen: Long = 0,
 )
 
-/**
- * The specific instance of the plant in the user's garden.
- */
 data class UserPlant(
     val id: String? = null,
     val ownerId: String? = null,
@@ -58,7 +48,7 @@ data class UserPlant(
     val speciesName: String? = null,
     val customName: String? = null,
 
-    // --- Sensor Readings (Add these) ---
+    // --- Sensor Readings ---
     val currentHumiditySoil: Double = 0.0,
     val currentTemperature: Double? = null,
     val currentHumidityAir: Double? = null,

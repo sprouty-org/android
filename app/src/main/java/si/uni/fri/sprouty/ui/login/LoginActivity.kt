@@ -42,27 +42,25 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        loadingOverlay = findViewById(R.id.loadingOverlay) // Bind overlay
+        loadingOverlay = findViewById(R.id.loadingOverlay)
 
-        // INITIALIZATION
         firebaseAuth = FirebaseAuth.getInstance()
 
         // --- DEPENDENCY INJECTION SETUP ---
 
-        // 1. AuthApiService (Network dependency)
+        // AuthApiService
         val authApiService = NetworkModule.provideRetrofit(applicationContext).create(AuthApiService::class.java)
 
-        // 2. PlantRepository (Database dependency for logout cleanup)
+        // PlantRepository
         val db = AppDatabase.getDatabase(applicationContext)
         val plantDao = db.plantDao()
         val plantApiService = NetworkModule.provideRetrofit(applicationContext).create(PlantApiService::class.java)
         val plantRepository = PlantRepository(plantDao, plantApiService)
 
-        // 3. SharedPreferencesUtil (Storage dependency)
-        // FIX: Instantiate the class by passing context, assuming the class constructor requires it.
+        // SharedPreferencesUtil
         val sharedPreferencesUtilDep = SharedPreferencesUtil(applicationContext)
 
-        // 4. Instantiate the class-based FirebaseUtils
+        // FirebaseUtils
         firebaseUtils = FirebaseUtils(authApiService, sharedPreferencesUtilDep, plantRepository)
 
         // --- UI Setup ---
@@ -74,8 +72,6 @@ class LoginActivity : AppCompatActivity() {
         val btnGoogleLogin = findViewById<ImageButton>(R.id.btnGoogle)
         val btnSignup = findViewById<Button>(R.id.btnGoToSignup)
 
-
-        // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -83,7 +79,6 @@ class LoginActivity : AppCompatActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Set up Listeners
         btnLogin.setOnClickListener {
             val email = emailField.text.toString().trim()
             val pass = passwordField.text.toString().trim()
@@ -93,9 +88,8 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            setLoading(true) // Start loading
-            // FIX: Call instance method on firebaseUtils
-            // NOTE: This assumes you ADD the loginWithEmail method to FirebaseUtils.
+            setLoading(true)
+
             firebaseUtils.loginWithEmail(
                 context = this,
                 coroutineScope = lifecycleScope,
@@ -131,8 +125,6 @@ class LoginActivity : AppCompatActivity() {
                 val name = account.displayName ?: "User"
 
                 if (googleIdToken != null) {
-                    // FIX: Call instance method on firebaseUtils
-                    // NOTE: This assumes you ADD the exchangeGoogleLoginToken method to FirebaseUtils.
                     firebaseUtils.exchangeGoogleLoginToken(
                         this,
                         lifecycleScope,
